@@ -6,30 +6,40 @@ from datetime import datetime
 # --- 1. CONFIGURACIÓN E INGRESOS ---
 st.set_page_config(page_title="Sistema IA Financiera - Johan & Madi", layout="wide", page_icon="🏦")
 
-# --- 1.5 CABECERA ORDENADA Y CENTRADA (IMAGEN + TÍTULO) ---
-# Creamos tres columnas. La del medio (2) será donde pondremos el logo, 
-# y la tercera (3) para el título. La primera (1) y la cuarta (0.5) 
-# actuarán como márgenes laterales para centrar el contenido.
-st.write("") # Espacio en blanco inicial para dar aire
+# --- 1.5 CABECERA MAQUETADA Y CENTRADA ---
+st.write("") # Espacio para dar aire arriba
 
-# Usamos la maquetación 1:2:3:0.5 para equilibrar y centrar
-m_izq, col_logo, col_titulo, m_der = st.columns([1, 2, 3, 0.5])
+# Usamos columnas para centrar la imagen de HORU y el título
+# La proporción [1, 2, 3, 1] crea márgenes a los lados
+m_izq, col_logo, col_titulo, m_der = st.columns([1, 2, 4, 1])
 
 with col_logo:
-    # Subimos la imagen. Al estar en la columna central, se verá equilibrada.
-    # Asegúrate de usar el nombre exacto de tu archivo (ej: "banner.jpg" o "gatos.png")
+    # Usamos el nombre exacto de tu archivo en GitHub
     st.image("HORU.jpeg", use_container_width=True) 
 
 with col_titulo:
-    # Ponemos el título principal y la bienvenida al costado, con alineación a la izquierda
-    # Quitamos el 'text-align: center' y el 'st.markdown' redundante de más abajo.
-    st.markdown("<h1 style='color: #2E86C1; margin-top: 20px; font-size: 2.5em;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 1.2em;'>Bienvenido, Johan y Madi. Gestión de Activos y Control de Riesgos en tiempo real.</p>", unsafe_allow_html=True)
+    # Título estilizado y mensaje de bienvenida
+    st.markdown("<h1 style='color: #2E86C1; margin-top: 10px;'>🛡️ Panel de Control Financiero</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 1.2em; color: #808B96;'>Gestión de Activos y Control de Riesgos | <b>Johan & Madi</b></p>", unsafe_allow_html=True)
 
-st.divider() # Una línea divisoria limpia para separar la cabecera de las métricas
+st.divider()
 
+# --- 2. CONFIGURACIÓN DE INGRESOS ---
+MI_SUELDO = 1090.00
+SUELDO_MADI = 570.00
+AHORRO_YAPE = 107.14
+TOTAL_INGRESOS = MI_SUELDO + SUELDO_MADI + AHORRO_YAPE
+
+# Botón de actualización en el Sidebar
+if st.sidebar.button('🔄 Sincronizar Datos'):
+    st.cache_data.clear()
+    st.rerun()
+
+# --- 3. CONEXIÓN A TU GOOGLE SHEETS ---
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+
+# A partir de aquí sigue tu bloque de 'try:' con la carga de datos...
 
 # Tus ingresos reales
 INGRESOS_TOTALES = 1090.00 + 570.00 + 107.14
