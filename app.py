@@ -19,7 +19,7 @@ with col_logo:
 
 with col_titulo:
     # Título estilizado y mensaje de bienvenida
-    st.markdown("<h1 style='color: #2E86C1; margin-top: 10px;'>🛡️ Panel de Control Financiero</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: #2E86C1; margin-top: 10px;'>🛡️ Sistema de Control Financiero</h1>", unsafe_allow_html=True)
     st.markdown("<p style='font-size: 1.2em; color: #808B96;'>Gestión de Activos y Control de Riesgos | <b>Johan & Madi</b></p>", unsafe_allow_html=True)
 
 st.divider()
