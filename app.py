@@ -15,8 +15,9 @@ st.write("") # Espacio para dar aire arriba
 m_izq, col_logo, col_titulo, m_der = st.columns([1, 1, 5, 1])
 
 with col_logo:
-    # Usamos el nombre exacto de tu archivo en GitHub
-    st.image("HORU.jpeg", use_container_width=True) 
+    st.image("HORU.jpeg", use_container_width=True)
+    # Este pequeño estilo hace que los bordes de la imagen sean curvos
+    st.markdown('<style>img {border-radius: 15px;}</style>', unsafe_allow_html=True)
 
 with col_titulo:
     # Título estilizado y mensaje de bienvenida
