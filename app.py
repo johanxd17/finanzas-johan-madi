@@ -18,7 +18,7 @@ m_izq, col_logo, col_titulo, m_der = st.columns([1, 2, 3, 0.5])
 with col_logo:
     # Subimos la imagen. Al estar en la columna central, se verá equilibrada.
     # Asegúrate de usar el nombre exacto de tu archivo (ej: "banner.jpg" o "gatos.png")
-    st.image("tu_imagen_de_gatos.jpeg", use_container_width=True) 
+    st.image("HORU.jpeg", use_container_width=True) 
 
 with col_titulo:
     # Ponemos el título principal y la bienvenida al costado, con alineación a la izquierda
