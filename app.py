@@ -67,7 +67,7 @@ try:
     df[col_cat] = df.apply(lambda x: clasificador_ia(x['Concepto']) if pd.isna(x[col_cat]) or x[col_cat] == '' else x[col_cat], axis=1)
 
     # --- 3. CABECERA Y MÉTRICAS ---
-    st.markdown("<h1 style='text-align: center; color: #2E86C1;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
+    
     
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
