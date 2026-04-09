@@ -5,7 +5,7 @@ from datetime import datetime
 
 # --- 1. CONFIGURACIÓN E INGRESOS ---
 st.set_page_config(page_title="Sistema de Inteligencia Financiera - Johan & Madi", layout="wide", page_icon="🏦")
-st.image("nombre_de_tu_imagen.jpeg", use_container_width=True)
+st.image("HORU.jpeg", use_container_width=True)
 
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
