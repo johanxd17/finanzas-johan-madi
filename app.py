@@ -13,7 +13,7 @@ col_logo, col_titulo = st.columns([1, 4])
 with col_logo:
     # Subimos la imagen. use_container_width=True la ajusta al ancho de la columna 1.
     # Si quieres que sea más pequeña, usa width=150 (en píxeles) en lugar de use_container_width.
-    st.image("banner.jpg", use_container_width=True) 
+    st.image("HORU.jpg", use_container_width=True) 
 
 with col_titulo:
     # Ponemos el título al costado. Quitamos el 'text-align: center' para que alinee a la izquierda.
