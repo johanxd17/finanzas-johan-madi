@@ -4,23 +4,29 @@ import plotly.express as px
 from datetime import datetime
 
 # --- 1. CONFIGURACIÓN E INGRESOS ---
-st.set_page_config(page_title="Sistema de Inteligencia Financiera - Johan & Madi", layout="wide", page_icon="🏦")
-# --- 1.5 CABECERA MAQUETADA (IMAGEN + TÍTULO) ---
+st.set_page_config(page_title="Sistema IA Financiera - Johan & Madi", layout="wide", page_icon="🏦")
 
-# Creamos dos columnas: una estrecha para el logo (1) y una ancha para el título (4)
-col_logo, col_titulo = st.columns([1, 4])
+# --- 1.5 CABECERA ORDENADA Y CENTRADA (IMAGEN + TÍTULO) ---
+# Creamos tres columnas. La del medio (2) será donde pondremos el logo, 
+# y la tercera (3) para el título. La primera (1) y la cuarta (0.5) 
+# actuarán como márgenes laterales para centrar el contenido.
+st.write("") # Espacio en blanco inicial para dar aire
+
+# Usamos la maquetación 1:2:3:0.5 para equilibrar y centrar
+m_izq, col_logo, col_titulo, m_der = st.columns([1, 2, 3, 0.5])
 
 with col_logo:
-    # Subimos la imagen. use_container_width=True la ajusta al ancho de la columna 1.
-    # Si quieres que sea más pequeña, usa width=150 (en píxeles) en lugar de use_container_width.
-    st.image("HORU.jpeg", use_container_width=True) 
+    # Subimos la imagen. Al estar en la columna central, se verá equilibrada.
+    # Asegúrate de usar el nombre exacto de tu archivo (ej: "banner.jpg" o "gatos.png")
+    st.image("tu_imagen_de_gatos.jpeg", use_container_width=True) 
 
 with col_titulo:
-    # Ponemos el título al costado. Quitamos el 'text-align: center' para que alinee a la izquierda.
-    st.markdown("<h1 style='color: #2E86C1; margin-top: 0px;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
-    st.write("Bienvenido, Johan. Gestión de Activos y Control de Riesgos en tiempo real.")
+    # Ponemos el título principal y la bienvenida al costado, con alineación a la izquierda
+    # Quitamos el 'text-align: center' y el 'st.markdown' redundante de más abajo.
+    st.markdown("<h1 style='color: #2E86C1; margin-top: 20px; font-size: 2.5em;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 1.2em;'>Bienvenido, Johan y Madi. Gestión de Activos y Control de Riesgos en tiempo real.</p>", unsafe_allow_html=True)
 
-st.divider() # Una línea divisoria para separar la cabecera de las métricas
+st.divider() # Una línea divisoria limpia para separar la cabecera de las métricas
 
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
