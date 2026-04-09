@@ -5,7 +5,22 @@ from datetime import datetime
 
 # --- 1. CONFIGURACIÓN E INGRESOS ---
 st.set_page_config(page_title="Sistema de Inteligencia Financiera - Johan & Madi", layout="wide", page_icon="🏦")
-st.image("HORU.jpeg", use_container_width=True)
+# --- 1.5 CABECERA MAQUETADA (IMAGEN + TÍTULO) ---
+
+# Creamos dos columnas: una estrecha para el logo (1) y una ancha para el título (4)
+col_logo, col_titulo = st.columns([1, 4])
+
+with col_logo:
+    # Subimos la imagen. use_container_width=True la ajusta al ancho de la columna 1.
+    # Si quieres que sea más pequeña, usa width=150 (en píxeles) en lugar de use_container_width.
+    st.image("banner.jpg", use_container_width=True) 
+
+with col_titulo:
+    # Ponemos el título al costado. Quitamos el 'text-align: center' para que alinee a la izquierda.
+    st.markdown("<h1 style='color: #2E86C1; margin-top: 0px;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
+    st.write("Bienvenido, Johan. Gestión de Activos y Control de Riesgos en tiempo real.")
+
+st.divider() # Una línea divisoria para separar la cabecera de las métricas
 
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
