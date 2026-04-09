@@ -5,13 +5,14 @@ import plotly.express as px
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Johan & Madi - Live", layout="wide")
 
-# 1. PEGA TU ID DE EXCEL AQUÍ ABAJO ENTRE LAS COMILLAS
+# 1. TU ID DE EXCEL
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc" 
 
 # 2. TUS INGRESOS
 TOTAL_INGRESOS = 1090.00 + 570.00 + 107.14
 
-url = f"https://docs.google.com/spreadsheets/d/{1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc}/gviz/tq?tqx=out:csv"
+# --- LÍNEA CORREGIDA AQUÍ ---
+url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 
 st.title("🛡️ Panel de Control Financiero")
 
@@ -27,6 +28,10 @@ try:
     c1, c2, c3 = st.columns(3)
     c1.metric("Ingresos", f"S/ {TOTAL_INGRESOS:.2f}")
     c2.metric("Gastos", f"S/ {total_gastos:.2f}")
+    
+    # Color dinámico para el saldo
+    st.sidebar.markdown(f"### Saldo Actual: S/ {saldo:.2f}")
+    
     c3.metric("Saldo Restante", f"S/ {saldo:.2f}", delta=f"{saldo:.2f}")
 
     st.divider()
@@ -39,8 +44,10 @@ try:
     
     with col_b:
         st.subheader("📊 Distribución")
-        fig = px.pie(df, values='Monto', names='Banco', hole=0.4)
+        fig = px.pie(df, values='Monto', names='Banco', hole=0.4, 
+                     color_discrete_sequence=px.colors.qualitative.Pastel)
         st.plotly_chart(fig, use_container_width=True)
 
-except:
-    st.warning("⚠️ Esperando conexión con Google Sheets. Revisa el ID y los permisos de compartir.")
+except Exception as e:
+    st.warning("⚠️ Esperando conexión con Google Sheets...")
+    st.info("Asegúrate de que en el Excel hayas dado a 'Compartir' -> 'Cualquier persona con el enlace' (Lector).")
