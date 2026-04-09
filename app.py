@@ -3,61 +3,128 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Johan - Control de Gastos Reales", layout="wide", page_icon="📉")
+# --- 1. CONFIGURACIÓN E INGRESOS ---
+st.set_page_config(page_title="Sistema de Inteligencia Financiera - Johan & Madi", layout="wide", page_icon="🏦")
+st.image("nombre_de_tu_imagen.jpeg", use_container_width=True)
 
-# --- CONFIGURACIÓN DE INGRESOS ---
-MI_SUELDO = 1090.00
-SUELDO_MADI = 570.00
-AHORRO_YAPE = 107.14
-TOTAL_INGRESOS = MI_SUELDO + SUELDO_MADI + AHORRO_YAPE
-
-# --- CONEXIÓN A TU GOOGLE SHEETS ---
-# Ya puse tu ID real aquí
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 
-st.markdown("<h1 style='text-align: center; color: #2E86C1;'>🛡️ Panel de Control Financiero</h1>", unsafe_allow_html=True)
+# Tus ingresos reales
+INGRESOS_TOTALES = 1090.00 + 570.00 + 107.14
+
+# --- 2. IA DE CLASIFICACIÓN (NLP) ---
+def clasificador_ia(concepto):
+    concepto = str(concepto).lower()
+    if any(word in concepto for word in ['menu', 'comida', 'ceviche', 'pizza', 'hamburguesa', 'almuerzo']):
+        return "🍱 Alimentación"
+    if any(word in concepto for word in ['pasaje', 'bus', 'taxi', 'gasolina', 'corredor']):
+        return "🚗 Transporte"
+    if any(word in concepto for word in ['cuota', 'iphone', 'prestamo', 'banco', 'interbank', 'bbva', 'scotia']):
+        return "💳 Deudas/Fijos"
+    if any(word in concepto for word in ['cine', 'netflix', 'juego', 'salida', 'cerveza', 'switch']):
+        return "🎮 Diversión"
+    return "❓ Otros"
 
 try:
-    # CARGA DE DATOS DESDE EXCEL
     df = pd.read_csv(url)
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+    df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
     
-    total_gastos = df['Monto'].sum()
-    saldo_disponible = TOTAL_INGRESOS - total_gastos
+    # Auto-llenado de categorías si están vacías (Tu IA interna)
+    col_cat = [c for c in df.columns if 'Categor' in c][0]
+    df[col_cat] = df.apply(lambda x: clasificador_ia(x['Concepto']) if pd.isna(x[col_cat]) or x[col_cat] == '' else x[col_cat], axis=1)
 
-    # --- MÉTRICAS PRINCIPALES (TU DISEÑO) ---
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Ingresos Totales", f"S/ {TOTAL_INGRESOS:.2f}")
-    c1.caption("Sueldos + Ahorro Yape")
+    # --- 3. CABECERA Y MÉTRICAS ---
+    st.markdown("<h1 style='text-align: center; color: #2E86C1;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
+    
+    gastos_totales = df['Monto'].sum()
+    saldo_actual = INGRESOS_TOTALES - gastos_totales
+    porcentaje_gastado = (gastos_totales / INGRESOS_TOTALES) if INGRESOS_TOTALES > 0 else 0
 
-    c2.metric("Gastos Totales", f"S/ {total_gastos:.2f}")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
+    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
+    m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
 
-    color_texto = "#27AE60" if saldo_disponible > 0 else "#C0392B"
-    c3.markdown(f"### Saldo para el Mes\n<h2 style='color:{color_texto};'>S/ {saldo_disponible:.2f}</h2>", unsafe_allow_html=True)
+    # --- 4. TERMÓMETRO DE SALUD (BRILLANTE) ---
+    st.write("### 🌡️ Nivel de Salud Financiera")
+    
+    # La barra de progreso se mantiene para ver el avance visual
+    st.progress(min(porcentaje_gastado, 1.0))
+    
+    # Aquí aplicamos el "Brillo" según el nivel de gasto
+    if porcentaje_gastado < 0.7:
+        st.success(f"✅ ESTADO SALUDABLE: Has gastado el {porcentaje_gastado:.1%}")
+    elif porcentaje_gastado < 0.9:
+        st.warning(f"⚠️ PRECAUCIÓN: Has gastado el {porcentaje_gastado:.1%}")
+    else:
+        st.error(f"🚨 ALERTA CRÍTICA: Has gastado el {porcentaje_gastado:.1%}")
 
     st.divider()
 
-    # --- INFORMACIÓN DE USO ---
-    st.info("💡 **Dato de Ingeniero:** Para registrar o quitar gastos, edita directamente tu archivo 'Finanzas-Johan-Madi' en Google Sheets. Los cambios se verán aquí al refrescar.")
-
-    # --- SECCIÓN DE VISUALIZACIÓN (TU DISEÑO) ---
-    col_list, col_chart = st.columns([1.5, 1])
-
-    with col_list:
-        st.subheader("📋 Detalle de Movimientos")
-        # Mostramos la tabla tal cual viene del Excel
-        st.dataframe(df[['Fecha', 'Concepto', 'Monto', 'Banco']], use_container_width=True)
+    # --- 5. BLOQUE DE ANÁLISIS (BANCOS, PERSONAS, CATEGORÍAS) ---
+    st.subheader("📊 Análisis de Movimientos")
+    c1, c2, c3 = st.columns(3)
     
-    with col_chart:
-        st.subheader("📊 Gastos por Banco")
-        if total_gastos > 0:
-            fig = px.pie(df, values='Monto', names='Banco', hole=0.4,
-                         color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.write("Agrega datos en el Excel para ver el gráfico.")
+    with c1:
+        st.write("**💳 Gestión por Bancos**")
+        # Aquí controlas BCP, BBVA, Interbank y Scotia
+        fig_banco = px.pie(df, values='Monto', names='Banco', hole=0.4, color_discrete_sequence=px.colors.qualitative.Safe)
+        st.plotly_chart(fig_banco, use_container_width=True)
+
+    with c2:
+        st.write("**👥 Johan vs Madi**")
+        if 'Responsable' in df.columns:
+            fig_resp = px.pie(df, values='Monto', names='Responsable', hole=0.4, color_discrete_sequence=['#2E86C1', '#F39C12'])
+            st.plotly_chart(fig_resp, use_container_width=True)
+
+    with c3:
+        st.write("**🏷️ Gastos por Categoría**")
+        fig_cat = px.bar(df.groupby(col_cat)['Monto'].sum().reset_index(), x=col_cat, y='Monto', color=col_cat)
+        st.plotly_chart(fig_cat, use_container_width=True)
+
+    # --- NUEVA SECCIÓN: GRÁFICO DE TENDENCIA (TÉCNICO) ---
+    st.divider()
+    st.subheader("📈 Tendencia de Gasto en el Tiempo")
+    
+    # Preparación de datos para la línea
+    if not df.empty and df['Fecha'].notnull().any():
+        df_linea = df.groupby(df['Fecha'].dt.date)['Monto'].sum().reset_index()
+        df_linea.columns = ['Fecha_Corta', 'Total_Gasto']
+        
+        # Creamos el gráfico de líneas (El look de terminal financiera)
+        fig_tendencia = px.line(df_linea, x='Fecha_Corta', y='Total_Gasto', 
+                                title="Evolución de Salidas de Efectivo por Día",
+                                markers=True) # Añade puntitos en cada día
+        
+        # Mejoras visuales al gráfico
+        fig_tendencia.update_layout(xaxis_title="Día", yaxis_title="Soles Gastados")
+        
+        st.plotly_chart(fig_tendencia, use_container_width=True)
+    else:
+        st.info("No hay datos de fecha válidos para generar la tendencia.")
+
+    # --- 6. ANALISTA PREDICTIVO (IA) ---
+    st.divider()
+    st.subheader("🤖 Oráculo IA")
+    if not df.empty:
+        dias_mes = (datetime.now() - df['Fecha'].min()).days + 1
+        proyeccion = (gastos_totales / max(dias_mes, 1)) * 30
+        
+        c_ia1, c_ia2 = st.columns(2)
+        with c_ia1:
+            if proyeccion > INGRESOS_TOTALES:
+                st.error(f"La IA estima un gasto de S/ {proyeccion:.2f} a fin de mes. ¡Superarás tus ingresos!")
+            else:
+                st.success(f"La IA estima un gasto de S/ {proyeccion:.2f}. Vas por buen camino, Johan.")
+        
+        with c_ia2:
+            st.info(f"Ahorro estimado si mantienes el ritmo: **S/ {max(0, INGRESOS_TOTALES - proyeccion):.2f}**")
+
+    # --- 7. REGISTRO MAESTRO ---
+    st.subheader("📂 Registro Completo de Excel")
+    st.dataframe(df.sort_values(by='Fecha', ascending=False), use_container_width=True)
 
 except Exception as e:
-    st.error("⚠️ Error de conexión. Revisa que tu Google Sheets tenga datos y sea público.")
+    st.error(f"Error de conexión: {e}")
