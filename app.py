@@ -6,12 +6,13 @@ from datetime import datetime
 # --- 1. CONFIGURACIÓN E INGRESOS ---
 st.set_page_config(page_title="Sistema IA Financiera - Johan & Madi", layout="wide", page_icon="🏦")
 
-# --- 1.5 CABECERA MAQUETADA Y CENTRADA ---
+# --- 1.5 CABECERA MAQUETADA Y CENTRADA (IMAGEN PEQUEÑA) ---
 st.write("") # Espacio para dar aire arriba
 
-# Usamos columnas para centrar la imagen de HORU y el título
-# La proporción [1, 2, 3, 1] crea márgenes a los lados
-m_izq, col_logo, col_titulo, m_der = st.columns([1, 2, 4, 1])
+# CAMBIAMOS LA PROPORCIÓN DE COLUMNAS PARA REDUCIR EL LOGO
+# Usamos [1, 1, 5, 1]: La columna del logo (1) es ahora la mitad de ancha 
+# que antes (2), y la del título (5) es más ancha para compensar.
+m_izq, col_logo, col_titulo, m_der = st.columns([1, 1, 5, 1])
 
 with col_logo:
     # Usamos el nombre exacto de tu archivo en GitHub
@@ -19,8 +20,8 @@ with col_logo:
 
 with col_titulo:
     # Título estilizado y mensaje de bienvenida
-    st.markdown("<h1 style='color: #2E86C1; margin-top: 10px;'>🛡️ Sistema de Control Financiero</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 1.2em; color: #808B96;'>Gestión de Activos y Control de Riesgos | <b>Johan & Madi</b></p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: #2E86C1; margin-top: 10px; font-size: 2.2em;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 1.1em; color: #808B96; margin-top: -10px;'>Gestión de Activos y Control de Riesgos | <b>Johan & Madi</b></p>", unsafe_allow_html=True)
 
 st.divider()
 
