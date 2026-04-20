@@ -61,6 +61,19 @@ def clasificador_ia(concepto):
 
 try:
     df = pd.read_csv(url)
+    
+    # --- SOLUCIÓN AL ERROR DE REPETICIÓN ---
+    # 1. Limpiamos espacios en blanco al inicio o final
+    # 2. Estandarizamos (opcionalmente) para que todo sea igual
+    if 'Banco' in df.columns:
+        df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
+    
+    if 'Responsable' in df.columns:
+        df['Responsable'] = df['Responsable'].astype(str).str.strip()
+    # ---------------------------------------
+
+    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+    # ... resto del código
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
     df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
     
