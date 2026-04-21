@@ -190,27 +190,35 @@ try:
     st.subheader("🤖 Oráculo IA")
 
     if not df.empty:
-        # 1. Identificamos qué es gasto fijo (ejemplo: mayor a 200 soles o por palabra clave)
-        # Puedes ajustar el 200 según lo que consideres "gasto grande único"
+        # LIMPIEZA PREVENTIVA: Aseguramos que la columna Monto sea numérica
+        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+
+        # 1. Separamos gastos variables de los fijos (Como el iPhone de 442.21)
+        # Ahora la comparación funcionará porque ambos son números
         df_variables = df[df['Monto'] < 200] 
         df_fijos = df[df['Monto'] >= 200]
-    
+        
         gastos_variables_totales = df_variables['Monto'].sum()
         gastos_fijos_totales = df_fijos['Monto'].sum()
 
-        # 2. Calculamos el promedio diario SOLO de los gastos variables (comida, gustitos, etc.)
-        dias_transcurridos = (datetime.now() - df['Fecha'].min()).days + 1
+        # 2. Promedio diario solo de lo variable
+        dias_min = df['Fecha'].min()
+        dias_transcurridos = (datetime.now() - dias_min).days + 1
         promedio_variable_diario = gastos_variables_totales / max(dias_transcurridos, 1)
-    
-        # 3. Proyectamos el variable a 30 días y sumamos el fijo una sola vez
+        
+        # 3. Proyectamos variable a 30 días y sumamos el fijo una sola vez
         proyeccion_final = (promedio_variable_diario * 30) + gastos_fijos_totales
-    
+        
         c_ia1, c_ia2 = st.columns(2)
         with c_ia1:
             if proyeccion_final > INGRESOS_TOTALES:
                 st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
             else:
                 st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
+        
+        with c_ia2:
+            ahorro = max(0, INGRESOS_TOTALES - proyeccion_final)
+            st.info(f"Ahorro estimado: **S/ {ahorro:.2f}**")
 
     # --- 7. REGISTRO MAESTRO ---
     st.subheader("📂 Registro Completo de Excel")
