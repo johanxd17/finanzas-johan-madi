@@ -176,14 +176,12 @@ try:
         st.plotly_chart(fig_tendencia, use_container_width=True)
         # ... después de st.plotly_chart(fig_tendencia, use_container_width=True)
     
-    st.divider()
-    st.subheader("🔝 Los 5 gastos más fuertes del mes")
-    # Filtramos para no mostrar el iPhone si ya sabemos que es el más alto, 
-    # o simplemente mostramos los top de la lista actual
-    top_5 = df.nlargest(5, 'Monto')[['Fecha', 'Concepto', 'Monto', 'Banco']]
-    # Usamos st.table para que se vea como una lista fija y elegante
-    st.table(top_5)
-    
+        st.divider()
+        st.subheader("🔝 Los 5 gastos más fuertes del mes")
+        top_5 = df.nlargest(5, 'Monto')[['Fecha', 'Concepto', 'Monto', 'Banco']]
+        # Formateamos la fecha del Top 5 para que no salgan horas
+        top_5['Fecha'] = top_5['Fecha'].dt.strftime('%d/%m/%Y')
+        st.table(top_5)
     else:
         st.info("No hay datos de fecha válidos para generar la tendencia.")
 
