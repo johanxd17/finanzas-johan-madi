@@ -121,26 +121,26 @@ try:
     m3.metric("Saldo tras estos pagos", f"S/ {saldo_proyectado:.2f}")
     
     # --- SECCIÓN FUTURA: METAS DE AHORRO ---
-st.divider()
-st.subheader("🎯 Metas de Ahorro")
+    st.divider()
+    st.subheader("🎯 Metas de Ahorro")
 
-col_meta1, col_meta2 = st.columns(2)
+    col_meta1, col_meta2 = st.columns(2)
 
-with col_meta1:
-    meta_objetivo = 2000.00  # Ejemplo: Fondo de Emergencia
-    ahorro_actual = saldo_actual if saldo_actual > 0 else 0
-    progreso = min(ahorro_actual / meta_objetivo, 1.0)
+    with col_meta1:
+        meta_objetivo = 2000.00  # Ejemplo: Fondo de Emergencia
+        ahorro_actual = saldo_actual if saldo_actual > 0 else 0
+        progreso = min(ahorro_actual / meta_objetivo, 1.0)
     
-    st.write(f"**Fondo de Emergencia** (Meta: S/ {meta_objetivo})")
-    st.progress(progreso)
-    st.write(f"Faltan: S/ {meta_objetivo - ahorro_actual:.2f}")
+        st.write(f"**Fondo de Emergencia** (Meta: S/ {meta_objetivo})")
+        st.progress(progreso)
+        st.write(f"Faltan: S/ {meta_objetivo - ahorro_actual:.2f}")
 
-with col_meta2:
-    # Aquí podrías poner consejos basados en tu gasto
-    if porcentaje_gastado > 0.9:
-        st.warning("Este mes el ahorro es difícil. Prioriza cubrir deudas.")
-    else:
-        st.success("¡Buen ritmo! Podrías destinar el sobrante a tu meta.")
+     with col_meta2:
+         # Aquí podrías poner consejos basados en tu gasto
+         if porcentaje_gastado > 0.9:
+             st.warning("Este mes el ahorro es difícil. Prioriza cubrir deudas.")
+         else:
+             st.success("¡Buen ritmo! Podrías destinar el sobrante a tu meta.")
     
     # --- 4. RECORDATORIOS DE FACTURACIÓN ---
     st.subheader("🔔 Recordatorios de Facturación")
