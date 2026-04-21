@@ -26,6 +26,13 @@ MI_SUELDO = 960.00
 SUELDO_MADI = 560.00
 TOTAL_INGRESOS = MI_SUELDO + SUELDO_MADI 
 INGRESOS_TOTALES = TOTAL_INGRESOS
+# Formato: 'BANCO': [Día de Corte, Día de Pago]
+FECHAS_BANCOS = {
+    'BCP': [20, 10],
+    'BBVA': [15, 5],
+    'INTERBANK': [25, 15],
+    'SCOTIABANK': [18, 8]
+}
 
 # Botón de actualización en el Sidebar
 if st.sidebar.button('🔄 Sincronizar Datos'):
@@ -95,6 +102,26 @@ try:
     m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
     m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
     m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
+    
+    # -ALERTAS DE PAGO ---
+    st.subheader("🔔 Recordatorios de Facturación")
+    hoy = datetime.now()
+    dia_actual = hoy.day
+    
+    columnas_alertas = st.columns(len(FECHAS_BANCOS))
+    
+    for i, (banco, fechas) in enumerate(FECHAS_BANCOS.items()):
+        dia_corte, dia_pago = fechas
+        with columnas_alertas[i]:
+            # Lógica simple de aviso
+            if dia_actual <= dia_pago:
+                dias_faltantes = dia_pago - dia_actual
+                if dias_faltantes <= 5:
+                    st.error(f"**{banco}**\n\n¡Pagar en {dias_faltantes} días!")
+                else:
+                    st.info(f"**{banco}**\n\nFaltan {dias_faltantes} días para el pago.")
+            else:
+                st.success(f"**{banco}**\n\nCiclo actual: Corte el día {dia_corte}")
 
     # --- 4. TERMÓMETRO DE SALUD ---
     st.write("### 🌡️ Nivel de Salud Financiera")
