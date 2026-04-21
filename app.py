@@ -176,31 +176,31 @@ try:
         st.info("No hay datos de fecha válidos para generar la tendencia.")
 
    # --- 6. ANALISTA PREDICTIVO (IA) MEJORADO ---
-st.divider()
-st.subheader("🤖 Oráculo IA")
+   st.divider()
+   st.subheader("🤖 Oráculo IA")
 
-if not df.empty:
-    # 1. Identificamos qué es gasto fijo (ejemplo: mayor a 200 soles o por palabra clave)
-    # Puedes ajustar el 200 según lo que consideres "gasto grande único"
-    df_variables = df[df['Monto'] < 200] 
-    df_fijos = df[df['Monto'] >= 200]
+    if not df.empty:
+        # 1. Identificamos qué es gasto fijo (ejemplo: mayor a 200 soles o por palabra clave)
+        # Puedes ajustar el 200 según lo que consideres "gasto grande único"
+        df_variables = df[df['Monto'] < 200] 
+        df_fijos = df[df['Monto'] >= 200]
     
-    gastos_variables_totales = df_variables['Monto'].sum()
-    gastos_fijos_totales = df_fijos['Monto'].sum()
+        gastos_variables_totales = df_variables['Monto'].sum()
+        gastos_fijos_totales = df_fijos['Monto'].sum()
 
-    # 2. Calculamos el promedio diario SOLO de los gastos variables (comida, gustitos, etc.)
-    dias_transcurridos = (datetime.now() - df['Fecha'].min()).days + 1
-    promedio_variable_diario = gastos_variables_totales / max(dias_transcurridos, 1)
+        # 2. Calculamos el promedio diario SOLO de los gastos variables (comida, gustitos, etc.)
+        dias_transcurridos = (datetime.now() - df['Fecha'].min()).days + 1
+        promedio_variable_diario = gastos_variables_totales / max(dias_transcurridos, 1)
     
-    # 3. Proyectamos el variable a 30 días y sumamos el fijo una sola vez
-    proyeccion_final = (promedio_variable_diario * 30) + gastos_fijos_totales
+        # 3. Proyectamos el variable a 30 días y sumamos el fijo una sola vez
+        proyeccion_final = (promedio_variable_diario * 30) + gastos_fijos_totales
     
-    c_ia1, c_ia2 = st.columns(2)
-    with c_ia1:
-        if proyeccion_final > INGRESOS_TOTALES:
-            st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
-        else:
-            st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
+        c_ia1, c_ia2 = st.columns(2)
+        with c_ia1:
+            if proyeccion_final > INGRESOS_TOTALES:
+                st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
+            else:
+                st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
 
     # --- 7. REGISTRO MAESTRO ---
     st.subheader("📂 Registro Completo de Excel")
