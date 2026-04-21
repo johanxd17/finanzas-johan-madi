@@ -207,4 +207,4 @@ if not df.empty:
     st.dataframe(df.sort_values(by='Fecha', ascending=False), use_container_width=True)
 
 except Exception as e:
-    st.error(f"Error de conexión: {e}")
+    st.error(f"Error de conexión o de datos: {e}")
