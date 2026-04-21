@@ -135,7 +135,7 @@ try:
         st.progress(progreso)
         st.write(f"Faltan: S/ {meta_objetivo - ahorro_actual:.2f}")
 
-     with col_meta2:
+      with col_meta2:
          # Aquí podrías poner consejos basados en tu gasto
          if porcentaje_gastado > 0.9:
              st.warning("Este mes el ahorro es difícil. Prioriza cubrir deudas.")
