@@ -175,9 +175,9 @@ try:
     else:
         st.info("No hay datos de fecha válidos para generar la tendencia.")
 
-   # --- 6. ANALISTA PREDICTIVO (IA) MEJORADO ---
-   st.divider()
-   st.subheader("🤖 Oráculo IA")
+    # --- 6. ANALISTA PREDICTIVO (IA) MEJORADO ---
+    st.divider()
+    st.subheader("🤖 Oráculo IA")
 
     if not df.empty:
         # 1. Identificamos qué es gasto fijo (ejemplo: mayor a 200 soles o por palabra clave)
