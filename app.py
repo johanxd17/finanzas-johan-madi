@@ -61,26 +61,49 @@ def clasificador_ia(concepto):
     return "❓ Otros"
 
 try:
+    # 1. Carga de datos
     df = pd.read_csv(url)
     
-    # --- SOLUCIÓN AL ERROR DE REPETICIÓN ---
-    # 1. Limpiamos espacios en blanco al inicio o final
-    # 2. Estandarizamos (opcionalmente) para que todo sea igual
+    # 2. Limpieza de nombres de columnas (importante para encontrar 'Fecha')
+    df.columns = [c.strip() for c in df.columns]
+
+    # 3. Normalización de Bancos y Responsables (Evita repeticiones en los gráficos)
     if 'Banco' in df.columns:
         df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
     
     if 'Responsable' in df.columns:
-        df['Responsable'] = df['Responsable'].astype(str).str.strip()
-    # ---------------------------------------
+        # Esto unifica "Johan ", "johan" y "Johan" en uno solo
+        df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
 
+    # 4. Conversión de Monto a número
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-    # ... resto del código
-    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-    df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
-    
-    # Auto-llenado de categorías si están vacías (Tu IA interna)
-    col_cat = [c for c in df.columns if 'Categor' in c][0]
-    df[col_cat] = df.apply(lambda x: clasificador_ia(x['Concepto']) if pd.isna(x[col_cat]) or x[col_cat] == '' else x[col_cat], axis=1)
+
+    # 5. Conversión de Fecha (Solución para que se muestren)
+    # dayfirst=True es vital porque en tu Excel usas formato "14 abril" o día/mes
+    if 'Fecha' in df.columns:
+        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
+        # Si alguna fecha no se pudo convertir, le ponemos la fecha de hoy para no romper el gráfico
+        df['Fecha'] = df['Fecha'].fillna(datetime.now())
+
+    # 6. Auto-llenado de categorías (Tu IA interna)
+    # Buscamos la columna que contenga "Categor" (Categoría o Categoría )
+    columnas_categoria = [c for c in df.columns if 'Categor' in c]
+    if columnas_categoria:
+        col_cat = columnas_categoria[0]
+        df[col_cat] = df.apply(
+            lambda x: clasificador_ia(x['Concepto']) 
+            if pd.isna(x[col_cat]) or str(x[col_cat]).strip() == '' 
+            else x[col_cat], 
+            axis=1
+        )
+    else:
+        # Si no existe la columna en el Excel, la creamos
+        col_cat = "Categoría"
+        df[col_cat] = df['Concepto'].apply(clasificador_ia)
+
+    # --- A PARTIR DE AQUÍ SIGUE TU CÓDIGO DE MÉTRICAS Y GRÁFICOS ---
+    gastos_totales = df['Monto'].sum()
+    # ... (el resto de tu código igual)
 
     # --- 3. CABECERA Y MÉTRICAS ---
     
