@@ -52,51 +52,52 @@ def clasificador_ia(concepto):
     return "❓ Otros"
 
 try:
-    # 1. Carga y Limpieza de Filas Vacías
+    # 1. Carga de datos y limpieza de filas vacías
     df = pd.read_csv(url)
     df.columns = [c.strip() for c in df.columns]
-    
-    # Eliminamos filas que no tengan ni Concepto ni Monto (las filas vacías del Excel)
     df = df.dropna(subset=['Concepto', 'Monto'], how='all')
 
-    # 2. LIMPIEZA DE MONTOS (Solución al error '<')
-    # Convertimos a número y lo que no sea número lo volvemos 0
+    # 2. LIMPIEZA DE DATOS (Para evitar el error de comparación)
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-
-    # --- PASO 1: FILTRO DE BANCOS ---
+    
+    # 3. NORMALIZACIÓN DE BANCOS (Pone todo en mayúsculas y quita espacios)
     if 'Banco' in df.columns:
-        # Llenamos vacíos en Banco para evitar errores de comparación
-        df['Banco'] = df['Banco'].fillna('SIN BANCO').astype(str).str.strip().str.upper()
+        df['Banco'] = df['Banco'].fillna('S/B').astype(str).str.strip().str.upper()
+        
+        # Obtenemos la lista de bancos únicos ya limpios
         lista_bancos = sorted(df['Banco'].unique())
         
+        # Filtro en el Sidebar
         bancos_seleccionados = st.sidebar.multiselect(
             "🏦 Seleccionar Bancos:",
             options=lista_bancos,
-            default=lista_bancos
+            default=lista_bancos  # Por defecto marca todos para que veas tus datos
         )
+        
+        # Aplicamos el filtro
         df = df[df['Banco'].isin(bancos_seleccionados)]
 
-    # 3. Normalización de Responsables y Categorías
+    # 4. Normalización de Responsables (Johan, Madi, Johan y Madi)
     if 'Responsable' in df.columns:
         df['Responsable'] = df['Responsable'].fillna('No asignado').astype(str).str.strip()
 
-    # 4. Conversión de Fecha
-    if 'Fecha' in df.columns:
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
-        # Si la fecha falla, ponemos la fecha de hoy
-        df['Fecha'] = df['Fecha'].fillna(pd.Timestamp.now())
-
-    # --- 3. MÉTRICAS ---
+    # --- 5. CÁLCULOS Y MÉTRICAS ---
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
-    
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:,.2f}")
-    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:,.2f}")
-    m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:,.2f}")
+
+    if not df.empty:
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:,.2f}")
+        m2.metric("Gasto Acumulado", f"S/ {gastos_totales:,.2f}")
+        m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:,.2f}")
+        
+        st.divider()
+        # AQUÍ DEBEN IR TUS GRÁFICOS (Gráfico de torta, etc.)
+    else:
+        st.warning("No hay datos para los bancos seleccionados. Revisa el filtro lateral.")
 
 except Exception as e:
-    st.error(f"Error de conexión o de datos: {e}")
+    st.error(f"Error en el sistema: {e}")
 
     # --- 4. TERMÓMETRO DE SALUD ---
     st.write("### 🌡️ Nivel de Salud Financiera")
