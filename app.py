@@ -48,7 +48,8 @@ INGRESOS_TOTALES = 1090.00 + 570.00 + 107.14
 
 # --- 2. IA DE CLASIFICACIÓN (NLP) ---
 def clasificador_ia(concepto):
-    concepto = str(concepto).lower()
+    if pd.isna(concepto): return "❓ Otros"
+    concepto = str(concepto).lower().strip()
     if any(word in concepto for word in ['menu', 'comida', 'ceviche', 'pizza', 'hamburguesa', 'almuerzo']):
         return "🍱 Alimentación"
     if any(word in concepto for word in ['pasaje', 'bus', 'taxi', 'gasolina', 'corredor']):
