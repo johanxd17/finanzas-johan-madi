@@ -57,6 +57,21 @@ try:
     
     # 2. Limpieza de nombres de columnas
     df.columns = [c.strip() for c in df.columns]
+    
+    #FILTRO DE BANCOS
+    if 'Banco' in df.columns:
+        # Extraemos los bancos únicos y los ordenamos
+        lista_bancos = sorted(df['Banco'].unique().astype(str))
+        
+        # Creamos el multiselect en la barra lateral
+        bancos_seleccionados = st.sidebar.multiselect(
+            "Filtrar por Banco:",
+            options=lista_bancos,
+            default=lista_bancos  # Por defecto todos seleccionados
+        )
+        
+        # Aplicamos el filtro al DataFrame original
+        df = df[df['Banco'].isin(bancos_seleccionados)]
 
     # 3. Normalización
     if 'Banco' in df.columns:
