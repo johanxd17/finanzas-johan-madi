@@ -28,10 +28,10 @@ TOTAL_INGRESOS = MI_SUELDO + SUELDO_MADI
 INGRESOS_TOTALES = TOTAL_INGRESOS
 # Formato: 'BANCO': [Día de Corte, Día de Pago]
 FECHAS_BANCOS = {
-    'BCP': [20, 10],
-    'BBVA': [15, 5],
-    'INTERBANK': [25, 15],
-    'SCOTIABANK': [18, 8]
+    'BCP': [10, 5],
+    'BBVA': [10, 5],
+    'INTERBANK': [27, 21],
+    'SCOTIABANK': [11, 8]
 }
 
 # Botón de actualización en el Sidebar
