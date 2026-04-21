@@ -41,7 +41,9 @@ if st.sidebar.button('🔄 Sincronizar Datos'):
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 
-# A partir de aquí sigue tu bloque de 'try:' con la carga de datos...
+# --- NUEVO: FILTROS EN EL SIDEBAR ---
+st.sidebar.divider()
+st.sidebar.subheader("🔍 Filtros de Visualización")
 
 # Tus ingresos reales
 INGRESOS_TOTALES = 960.00 + 560.00 + 107.14
@@ -66,6 +68,9 @@ try:
     
     # 2. Limpieza de nombres de columnas (importante para encontrar 'Fecha')
     df.columns = [c.strip() for c in df.columns]
+    bancos_disponibles = sorted(df['Banco'].unique())
+    banco_selec = st.sidebar.multiselect("Seleccionar Bancos:", options=bancos_disponibles, default=bancos_disponibles)
+    df = df[df['Banco'].isin(banco_selec)]
 
     # 3. Normalización de Bancos y Responsables (Evita repeticiones en los gráficos)
     if 'Banco' in df.columns:
@@ -101,12 +106,9 @@ try:
         col_cat = "Categoría"
         df[col_cat] = df['Concepto'].apply(clasificador_ia)
 
-    # --- A PARTIR DE AQUÍ SIGUE TU CÓDIGO DE MÉTRICAS Y GRÁFICOS ---
     gastos_totales = df['Monto'].sum()
-    # ... (el resto de tu código igual)
 
     # --- 3. CABECERA Y MÉTRICAS ---
-    
     
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
@@ -172,6 +174,16 @@ try:
         fig_tendencia.update_layout(xaxis_title="Día", yaxis_title="Soles Gastados")
         
         st.plotly_chart(fig_tendencia, use_container_width=True)
+        # ... después de st.plotly_chart(fig_tendencia, use_container_width=True)
+    
+    st.divider()
+    st.subheader("🔝 Los 5 gastos más fuertes del mes")
+    # Filtramos para no mostrar el iPhone si ya sabemos que es el más alto, 
+    # o simplemente mostramos los top de la lista actual
+    top_5 = df.nlargest(5, 'Monto')[['Fecha', 'Concepto', 'Monto', 'Banco']]
+    # Usamos st.table para que se vea como una lista fija y elegante
+    st.table(top_5)
+    
     else:
         st.info("No hay datos de fecha válidos para generar la tendencia.")
 
@@ -208,6 +220,17 @@ try:
     df_ver = df.copy()
     df_ver['Fecha'] = df_ver['Fecha'].dt.strftime('%d/%m/%Y')
     st.dataframe(df_ver.sort_values(by='Fecha', ascending=False), use_container_width=True)
+    # ... después del Registro Maestro
+    
+    # --- NUEVO: META DE AHORRO ---
+    st.sidebar.divider()
+    st.sidebar.subheader("🎯 Meta de Ahorro")
+    meta_ahorro = st.sidebar.number_input("Meta del mes (S/):", value=500.0)
+    ahorro_actual = INGRESOS_TOTALES - gastos_totales
+    
+    progreso = min(max(ahorro_actual / meta_ahorro, 0.0), 1.0) if meta_ahorro > 0 else 0.0
+    st.sidebar.progress(progreso)
+    st.sidebar.write(f"Llevan ahorrado: **S/ {ahorro_actual:.2f}**")
 
 except Exception as e:
     st.error(f"Error de conexión o de datos: {e}")
