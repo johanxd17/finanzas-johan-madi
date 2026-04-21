@@ -213,6 +213,40 @@ try:
         df_linea.columns = ['Fecha_Corta', 'Total_Gasto']
         fig_tendencia = px.line(df_linea, x='Fecha_Corta', y='Total_Gasto', markers=True)
         st.plotly_chart(fig_tendencia, use_container_width=True)
+    # --- LÓGICA DE SEGUIMIENTO DE CUOTAS Y METAS ---
+    st.divider()
+    st.subheader("🎯 Control de Compromisos y Ahorro")
+
+    # Datos maestros de tus cuotas (puedes mover esto a tu Excel luego)
+    cuotas = {
+    "Préstamo BBVA": {"monto": 174.12, "vence": "05-May", "cuota": "Penúltima"},
+    "Nintendo Switch 2": {"monto": 164.58, "vence": "05-May", "cuota": "2/12"},
+    "Cuadros": {"monto": 33.50, "vence": "05-May", "cuota": "1/3"},
+    "Powerpay (iPhones)": {"monto": 442.21, "vence": "11-May", "cuota": "ÚLTIMA 🚀"}
+    }
+
+    col_met, col_info = st.columns([2, 1])
+
+    with col_met:
+        # Meta de ahorro de S/ 2000 usando tu saldo proyectado real
+        meta_objetivo = 2000.0
+        ahorro_actual = max(0, saldo_proyectado)
+        progreso = min(ahorro_actual / meta_objetivo, 1.0)
+    
+        st.write(f"**Progreso Fondo de Emergencia**")
+        st.progress(progreso)
+        st.write(f"S/ {ahorro_actual:.2f} de S/ {meta_objetivo:.2f} (Proyectado tras pagos)")
+
+    with col_info:
+        # Oráculo IA - Resumen de liberación de flujo
+        st.info("💡 **Próxima Liberación:** El 11 de mayo terminas de pagar los iPhones. Recuperarás **S/ 442.21** mensuales de flujo de caja.")
+
+    # --- TABLA DE PRÓXIMOS PAGOS ---
+    with st.expander("Ver detalle de cuotas de Mayo"):
+        st.table([
+            {"Compromiso": k, "Monto": v["monto"], "Vencimiento": v["vence"], "Estado": v["cuota"]} 
+            for k, v in cuotas.items()
+        ])
 
     # --- 8. ANALISTA PREDICTIVO (IA) ---
     st.divider()
