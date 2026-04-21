@@ -55,33 +55,29 @@ try:
     # 1. Carga de datos
     df = pd.read_csv(url)
     
-    # 2. Limpieza de nombres de columnas
+    # 2. Limpieza inicial de nombres de columnas
     df.columns = [c.strip() for c in df.columns]
-    
-    #FILTRO DE BANCOS
+
+    # --- PASO 1: FILTRO DE BANCOS (CORREGIDO) ---
     if 'Banco' in df.columns:
-        # Extraemos los bancos únicos y los ordenamos
-        lista_bancos = sorted(df['Banco'].unique().astype(str))
+        # Limpiamos los nombres de los bancos para que no haya errores
+        df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
+        lista_bancos = sorted(df['Banco'].unique())
         
-        # Creamos el multiselect en la barra lateral
         bancos_seleccionados = st.sidebar.multiselect(
-            "Filtrar por Banco:",
+            "🏦 Filtrar por Banco:",
             options=lista_bancos,
-            default=lista_bancos  # Por defecto todos seleccionados
+            default=lista_bancos
         )
-        
-        # Aplicamos el filtro al DataFrame original
+        # Aplicamos el filtro antes de cualquier cálculo
         df = df[df['Banco'].isin(bancos_seleccionados)]
 
-    # 3. Normalización
-    if 'Banco' in df.columns:
-        df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
-    
+    # 3. Normalización de Responsables
     if 'Responsable' in df.columns:
         df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
 
-    # 4. Conversión de Monto a número
-    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+    # 4. LIMPIEZA CRÍTICA: Forzamos que 'Monto' sea número para evitar el error de '<'
+    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0).astype(float)
 
     # 5. Conversión de Fecha
     if 'Fecha' in df.columns:
@@ -90,27 +86,29 @@ try:
 
     # 6. Auto-llenado de categorías
     columnas_categoria = [c for c in df.columns if 'Categor' in c]
-    if columnas_categoria:
-        col_cat = columnas_categoria[0]
+    col_cat = columnas_categoria[0] if columnas_categoria else "Categoría"
+    
+    if col_cat not in df.columns:
+        df[col_cat] = df['Concepto'].apply(clasificador_ia)
+    else:
         df[col_cat] = df.apply(
             lambda x: clasificador_ia(x['Concepto']) 
             if pd.isna(x[col_cat]) or str(x[col_cat]).strip() == '' 
-            else x[col_cat], 
-            axis=1
+            else x[col_cat], axis=1
         )
-    else:
-        col_cat = "Categoría"
-        df[col_cat] = df['Concepto'].apply(clasificador_ia)
 
-    # --- 3. MÉTRICAS ---
+    # --- 3. MÉTRICAS Y CABECERA ---
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
     porcentaje_gastado = (gastos_totales / INGRESOS_TOTALES) if INGRESOS_TOTALES > 0 else 0
 
     m1, m2, m3 = st.columns(3)
     m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
-    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
+    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", 
+              delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
     m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
+
+    # (Sigue con el resto de tu código de gráficos...)
 
     # --- 4. TERMÓMETRO DE SALUD ---
     st.write("### 🌡️ Nivel de Salud Financiera")
