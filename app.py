@@ -52,50 +52,51 @@ def clasificador_ia(concepto):
     return "❓ Otros"
 
 try:
-    # 1. Carga de datos
+    # 1. Carga y Limpieza de Filas Vacías
     df = pd.read_csv(url)
-    
-    # 2. Limpieza de nombres de columnas
     df.columns = [c.strip() for c in df.columns]
-
-    # 3. Normalización
-    if 'Banco' in df.columns:
-        df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
     
-    if 'Responsable' in df.columns:
-        df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
+    # Eliminamos filas que no tengan ni Concepto ni Monto (las filas vacías del Excel)
+    df = df.dropna(subset=['Concepto', 'Monto'], how='all')
 
-    # 4. Conversión de Monto a número
+    # 2. LIMPIEZA DE MONTOS (Solución al error '<')
+    # Convertimos a número y lo que no sea número lo volvemos 0
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
 
-    # 5. Conversión de Fecha
+    # --- PASO 1: FILTRO DE BANCOS ---
+    if 'Banco' in df.columns:
+        # Llenamos vacíos en Banco para evitar errores de comparación
+        df['Banco'] = df['Banco'].fillna('SIN BANCO').astype(str).str.strip().str.upper()
+        lista_bancos = sorted(df['Banco'].unique())
+        
+        bancos_seleccionados = st.sidebar.multiselect(
+            "🏦 Seleccionar Bancos:",
+            options=lista_bancos,
+            default=lista_bancos
+        )
+        df = df[df['Banco'].isin(bancos_seleccionados)]
+
+    # 3. Normalización de Responsables y Categorías
+    if 'Responsable' in df.columns:
+        df['Responsable'] = df['Responsable'].fillna('No asignado').astype(str).str.strip()
+
+    # 4. Conversión de Fecha
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
-        df['Fecha'] = df['Fecha'].fillna(datetime.now())
-
-    # 6. Auto-llenado de categorías
-    columnas_categoria = [c for c in df.columns if 'Categor' in c]
-    if columnas_categoria:
-        col_cat = columnas_categoria[0]
-        df[col_cat] = df.apply(
-            lambda x: clasificador_ia(x['Concepto']) 
-            if pd.isna(x[col_cat]) or str(x[col_cat]).strip() == '' 
-            else x[col_cat], 
-            axis=1
-        )
-    else:
-        col_cat = "Categoría"
-        df[col_cat] = df['Concepto'].apply(clasificador_ia)
+        # Si la fecha falla, ponemos la fecha de hoy
+        df['Fecha'] = df['Fecha'].fillna(pd.Timestamp.now())
 
     # --- 3. MÉTRICAS ---
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
-    porcentaje_gastado = (gastos_totales / INGRESOS_TOTALES) if INGRESOS_TOTALES > 0 else 0
-
+    
     m1, m2, m3 = st.columns(3)
-    m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
-    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
-    m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
+    m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:,.2f}")
+    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:,.2f}")
+    m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:,.2f}")
+
+except Exception as e:
+    st.error(f"Error de conexión o de datos: {e}")
 
     # --- 4. TERMÓMETRO DE SALUD ---
     st.write("### 🌡️ Nivel de Salud Financiera")
