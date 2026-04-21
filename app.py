@@ -167,7 +167,20 @@ try:
             st.plotly_chart(fig_resp, use_container_width=True)
     with c3:
         st.write("**🏷️ Gastos por Categoría**")
-        fig_cat = px.bar(df_filtrado.groupby(col_cat)['Monto'].sum().reset_index(), x=col_cat, y='Monto')
+        # Agrupamos y reseteamos el índice para Plotly
+        df_cat_grafico = df_filtrado.groupby(col_cat)['Monto'].sum().reset_index()
+        
+        # Creamos el gráfico indicando que el color dependa de la categoría
+        fig_cat = px.bar(
+            df_cat_grafico, 
+            x=col_cat, 
+            y='Monto', 
+            color=col_cat,  # Esto asigna un color diferente a cada barra
+            color_discrete_sequence=px.colors.qualitative.Pastel # Paleta colorida y profesional
+        )
+        
+        # Quitamos la leyenda lateral para que no ocupe espacio innecesario
+        fig_cat.update_layout(showlegend=False)
         st.plotly_chart(fig_cat, use_container_width=True)
 
     # --- 7. GRÁFICO DE TENDENCIA ---
