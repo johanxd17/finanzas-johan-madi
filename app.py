@@ -34,14 +34,6 @@ FECHAS_BANCOS = {
     'SCOTIABANK': [11, 8]
 }
 
-# --- CONFIGURACIÓN DE FECHAS (Pon aquí tus días reales) ---
-    FECHAS_BANCOS = {
-        'BCP': [20, 10],      # [Corte, Pago]
-        'BBVA': [15, 5],
-        'INTERBANK': [25, 15],
-        'SCOTIABANK': [18, 8]
-    }
-
     # --- 1. CONSOLA DE PAGOS EN EL SIDEBAR ---
     st.sidebar.divider()
     st.sidebar.subheader("✅ Confirmar Pagos realizados")
