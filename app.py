@@ -120,27 +120,27 @@ try:
     m2.metric(f"Total {fase_pago.split(' ')[0]}", f"S/ {gastos_fase:.2f}")
     m3.metric("Saldo tras estos pagos", f"S/ {saldo_proyectado:.2f}")
     
-    # --- SECCIÓN FUTURA: METAS DE AHORRO ---
+    # --- SECCIÓN: METAS DE AHORRO (CORREGIDO) ---
     st.divider()
     st.subheader("🎯 Metas de Ahorro")
 
     col_meta1, col_meta2 = st.columns(2)
 
     with col_meta1:
-        meta_objetivo = 2000.00  # Ejemplo: Fondo de Emergencia
-        ahorro_actual = saldo_actual if saldo_actual > 0 else 0
-        progreso = min(ahorro_actual / meta_objetivo, 1.0)
-    
+        meta_objetivo = 2000.00  # Puedes cambiar este monto según tu meta real
+        # Usamos saldo_proyectado que es la variable que YA tienes en tu código
+        ahorro_disponible = saldo_proyectado if saldo_proyectado > 0 else 0
+        progreso = min(ahorro_disponible / meta_objetivo, 1.0)
+        
         st.write(f"**Fondo de Emergencia** (Meta: S/ {meta_objetivo})")
         st.progress(progreso)
-        st.write(f"Faltan: S/ {meta_objetivo - ahorro_actual:.2f}")
+        st.write(f"Proyectado tras pagos: S/ {ahorro_disponible:.2f}")
 
     with col_meta2:
-        # Aquí podrías poner consejos basados en tu gasto
         if porcentaje_gastado > 0.9:
-            st.warning("Este mes el ahorro es difícil. Prioriza cubrir deudas.")
+            st.warning("⚠️ Prioridad actual: Cubrir deudas. El margen de ahorro es crítico.")
         else:
-            st.success("¡Buen ritmo! Podrías destinar el sobrante a tu meta.")
+            st.success("✨ Tienes margen operativo. ¡Buen trabajo gestionando los gastos!")
     
     # --- 4. RECORDATORIOS DE FACTURACIÓN ---
     st.subheader("🔔 Recordatorios de Facturación")
