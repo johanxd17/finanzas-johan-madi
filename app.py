@@ -12,8 +12,11 @@ st.write("")
 m_izq, col_logo, col_titulo, m_der = st.columns([1, 1, 5, 1])
 
 with col_logo:
-    st.image("HORU.jpeg", use_container_width=True)
-    st.markdown('<style>img {border-radius: 15px;}</style>', unsafe_allow_html=True)
+    try:
+        st.image("HORU.jpeg", use_container_width=True)
+        st.markdown('<style>img {border-radius: 15px;}</style>', unsafe_allow_html=True)
+    except:
+        st.write("🏢")
 
 with col_titulo:
     st.markdown("<h1 style='color: #2E86C1; margin-top: 10px; font-size: 2.2em;'>🛡️ Panel de Control Financiero Pro</h1>", unsafe_allow_html=True)
@@ -26,6 +29,7 @@ MI_SUELDO = 960.00
 SUELDO_MADI = 560.00
 TOTAL_INGRESOS = MI_SUELDO + SUELDO_MADI 
 INGRESOS_TOTALES = TOTAL_INGRESOS
+
 # Formato: 'BANCO': [Día de Corte, Día de Pago]
 FECHAS_BANCOS = {
     'BCP': [10, 5],
@@ -41,32 +45,7 @@ st.sidebar.write("*(Marca si ya pagaste la cuota del mes)*")
     
 pagos_confirmados = {}
 for banco in FECHAS_BANCOS.keys():
-    # Esto crea un switch para cada banco que se guarda solo en la sesión actual
     pagos_confirmados[banco] = st.sidebar.checkbox(f"Pagué {banco}", key=f"pay_{banco}")
-
-# --- 2. SECCIÓN DE ALERTAS EN EL PANEL ---
-st.subheader("🔔 Recordatorios de Facturación")
-hoy = datetime.now()
-dia_actual = hoy.day
-    
-columnas_alertas = st.columns(len(FECHAS_BANCOS))
-    
-for i, (banco, fechas) in enumerate(FECHAS_BANCOS.items()):
-    dia_corte, dia_pago = fechas
-        
-    with columnas_alertas[i]:
-        # Lógica: Si el usuario marcó el checkbox en el sidebar, ignoramos la alerta
-        if pagos_confirmados[banco]:
-            st.success(f"**{banco}**\n\n✅ Pago Confirmado")
-        else:
-            if dia_actual <= dia_pago:
-                dias_faltantes = dia_pago - dia_actual
-                if dias_faltantes <= 5:
-                    st.error(f"**{banco}**\n\n¡Pagar en {dias_faltantes} días!")
-                else:
-                    st.info(f"**{banco}**\n\nFaltan {dias_faltantes} días.")
-            else:
-                st.warning(f"**{banco}**\n\nCierre el día {dia_corte}")
 
 # --- 3. CONEXIÓN A GOOGLE SHEETS ---
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
@@ -132,7 +111,7 @@ try:
     m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
     m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
     
-    # -ALERTAS DE PAGO ---
+    # --- 4. RECORDATORIOS DE FACTURACIÓN (CORREGIDO - NO DUPLICADO) ---
     st.subheader("🔔 Recordatorios de Facturación")
     hoy = datetime.now()
     dia_actual = hoy.day
@@ -142,17 +121,20 @@ try:
     for i, (banco, fechas) in enumerate(FECHAS_BANCOS.items()):
         dia_corte, dia_pago = fechas
         with columnas_alertas[i]:
-            # Lógica simple de aviso
-            if dia_actual <= dia_pago:
-                dias_faltantes = dia_pago - dia_actual
-                if dias_faltantes <= 5:
-                    st.error(f"**{banco}**\n\n¡Pagar en {dias_faltantes} días!")
-                else:
-                    st.info(f"**{banco}**\n\nFaltan {dias_faltantes} días para el pago.")
+            # Lógica: Si el usuario marcó el checkbox en el sidebar, aparece en Verde
+            if pagos_confirmados.get(banco):
+                st.success(f"**{banco}**\n\n✅ Pago Confirmado")
             else:
-                st.success(f"**{banco}**\n\nCiclo actual: Corte el día {dia_corte}")
+                if dia_actual <= dia_pago:
+                    dias_faltantes = dia_pago - dia_actual
+                    if dias_faltantes <= 5:
+                        st.error(f"**{banco}**\n\n¡Pagar en {dias_faltantes} días!")
+                    else:
+                        st.info(f"**{banco}**\n\nFaltan {dias_faltantes} días.")
+                else:
+                    st.warning(f"**{banco}**\n\nCierre el día {dia_corte}")
 
-    # --- 4. TERMÓMETRO DE SALUD ---
+    # --- 5. TERMÓMETRO DE SALUD ---
     st.write("### 🌡️ Nivel de Salud Financiera")
     st.progress(min(porcentaje_gastado, 1.0))
     
@@ -165,7 +147,7 @@ try:
 
     st.divider()
 
-    # --- 5. BLOQUE DE ANÁLISIS ---
+    # --- 6. BLOQUE DE ANÁLISIS ---
     st.subheader("📊 Análisis de Movimientos")
     c1, c2, c3 = st.columns(3)
     
@@ -185,7 +167,7 @@ try:
         fig_cat = px.bar(df.groupby(col_cat)['Monto'].sum().reset_index(), x=col_cat, y='Monto', color=col_cat)
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    # --- NUEVA SECCIÓN: GRÁFICO DE TENDENCIA ---
+    # --- 7. GRÁFICO DE TENDENCIA ---
     st.divider()
     st.subheader("📈 Tendencia de Gasto en el Tiempo")
     
@@ -200,7 +182,7 @@ try:
     else:
         st.info("No hay datos de fecha válidos para generar la tendencia.")
 
-    # --- 6. ANALISTA PREDICTIVO (IA) ---
+    # --- 8. ANALISTA PREDICTIVO (IA) ---
     st.divider()
     st.subheader("🤖 Oráculo IA")
 
@@ -215,14 +197,12 @@ try:
         promedio_variable_diario = gastos_variables_totales / max(dias_transcurridos, 1)
         proyeccion_final = (promedio_variable_diario * 30) + gastos_fijos_totales
     
-        c_ia1, c_ia2 = st.columns(2)
-        with c_ia1:
-            if proyeccion_final > INGRESOS_TOTALES:
-                st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
-            else:
-                st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
+        if proyeccion_final > INGRESOS_TOTALES:
+            st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
+        else:
+            st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
 
-    # --- 7. REGISTRO MAESTRO ---
+    # --- 9. REGISTRO MAESTRO ---
     st.subheader("📂 Registro Completo de Excel")
     df_ver = df.copy()
     df_ver['Fecha'] = df_ver['Fecha'].dt.strftime('%d/%m/%Y')
