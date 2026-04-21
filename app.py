@@ -66,46 +66,50 @@ try:
     # 1. Carga de datos
     df = pd.read_csv(url)
     
-    # 2. Limpieza de nombres de columnas
+    # 2. Limpieza de nombres de columnas (Quita espacios invisibles)
     df.columns = [c.strip() for c in df.columns]
 
-    # --- LIMPIEZA CRÍTICA DE DATOS (Mueve esto aquí arriba) ---
-    if 'Monto' in df.columns:
-        # Forzamos que sea número. Si hay texto, lo vuelve NaN y luego 0.
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+    # --- 🛡️ LIMPIEZA MAESTRA DE DATOS (ELIMINA EL ERROR DE STR VS FLOAT) ---
+    # Buscamos la columna de Monto sin importar si es "Monto", "monto" o " Monto "
+    col_monto = next((c for c in df.columns if 'monto' in c.lower()), 'Monto')
     
-    # Filtro de Bancos en el Sidebar
-    bancos_disponibles = sorted(df['Banco'].unique().astype(str))
-    banco_selec = st.sidebar.multiselect("Seleccionar Bancos:", options=bancos_disponibles, default=bancos_disponibles)
-    df = df[df['Banco'].isin(banco_selec)]
+    if col_monto in df.columns:
+        # Convertimos a texto, quitamos "S/", comas y espacios, y luego a número
+        df[col_monto] = df[col_monto].astype(str).str.replace('S/', '', regex=False).str.replace(',', '', regex=False).str.strip()
+        df[col_monto] = pd.to_numeric(df[col_monto], errors='coerce').fillna(0)
+        # Renombramos a "Monto" exacto para que el resto del código no falle
+        df = df.rename(columns={col_monto: 'Monto'})
 
-    # 3. Normalización
+    # Buscamos la columna de Fecha (por si acaso en el Excel sale como "ha")
+    col_fecha = next((c for c in df.columns if 'fecha' in c.lower() or 'ha' == c.lower()), 'Fecha')
+    if col_fecha in df.columns:
+        df['Fecha'] = pd.to_datetime(df[col_fecha], errors='coerce', dayfirst=True)
+        df['Fecha'] = df['Fecha'].fillna(datetime.now())
+        if col_fecha != 'Fecha':
+            df = df.drop(columns=[col_fecha])
+
+    # 3. Filtro de Bancos (Ahora con datos limpios)
     if 'Banco' in df.columns:
+        bancos_disponibles = sorted(df['Banco'].unique().astype(str))
+        banco_selec = st.sidebar.multiselect("Seleccionar Bancos:", options=bancos_disponibles, default=bancos_disponibles)
+        df = df[df['Banco'].isin(banco_selec)]
         df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
     
     if 'Responsable' in df.columns:
         df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
 
-    # 4. Conversión de Fecha
-    if 'Fecha' in df.columns:
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
-        df['Fecha'] = df['Fecha'].fillna(datetime.now())
-
-    # 5. Auto-llenado de categorías (Tu IA interna)
+    # 4. Auto-llenado de categorías
     columnas_categoria = [c for c in df.columns if 'Categor' in c]
-    if columnas_categoria:
-        col_cat = columnas_categoria[0]
-        df[col_cat] = df.apply(
-            lambda x: clasificador_ia(x['Concepto']) 
-            if pd.isna(x[col_cat]) or str(x[col_cat]).strip() == '' 
-            else x[col_cat], 
-            axis=1
-        )
-    else:
-        col_cat = "Categoría"
-        df[col_cat] = df['Concepto'].apply(clasificador_ia)
+    col_cat = columnas_categoria[0] if columnas_categoria else "Categoría"
+    if col_cat not in df.columns: df[col_cat] = ""
+    
+    df[col_cat] = df.apply(
+        lambda x: clasificador_ia(x['Concepto']) 
+        if pd.isna(x[col_cat]) or str(x[col_cat]).strip() == '' 
+        else x[col_cat], axis=1
+    )
 
-    # --- 3. MÉTRICAS ---
+    # --- 📊 VISUALIZACIÓN DE MÉTRICAS ---
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
     porcentaje_gastado = (gastos_totales / INGRESOS_TOTALES) if INGRESOS_TOTALES > 0 else 0
@@ -115,86 +119,67 @@ try:
     m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
     m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
 
-    # --- 4. TERMÓMETRO ---
     st.write("### 🌡️ Nivel de Salud Financiera")
     st.progress(min(porcentaje_gastado, 1.0))
     
+    # Mensajes de salud
     if porcentaje_gastado < 0.7:
-        st.success(f"✅ ESTADO SALUDABLE: Has gastado el {porcentaje_gastado:.1%}")
+        st.success(f"✅ ESTADO SALUDABLE: Todo bajo control en Organa")
     elif porcentaje_gastado < 0.9:
-        st.warning(f"⚠️ PRECAUCIÓN: Has gastado el {porcentaje_gastado:.1%}")
+        st.warning(f"⚠️ PRECAUCIÓN: Vigila los gastos hormiga")
     else:
-        st.error(f"🚨 ALERTA CRÍTICA: Has gastado el {porcentaje_gastado:.1%}")
+        st.error(f"🚨 ALERTA CRÍTICA: Has superado el límite sugerido")
 
     st.divider()
 
-    # --- 5. BLOQUE DE ANÁLISIS ---
+    # --- 📈 ANÁLISIS DE MOVIMIENTOS ---
     st.subheader("📊 Análisis de Movimientos")
     c1, c2, c3 = st.columns(3)
-    
     with c1:
-        st.write("**💳 Gestión por Bancos**")
-        fig_banco = px.pie(df, values='Monto', names='Banco', hole=0.4, color_discrete_sequence=px.colors.qualitative.Safe)
-        st.plotly_chart(fig_banco, use_container_width=True)
-
+        st.plotly_chart(px.pie(df, values='Monto', names='Banco', hole=0.4, title="Bancos"), use_container_width=True)
     with c2:
-        st.write("**👥 Johan vs Madi**")
         if 'Responsable' in df.columns:
-            fig_resp = px.pie(df, values='Monto', names='Responsable', hole=0.4, color_discrete_sequence=['#2E86C1', '#F39C12'])
-            st.plotly_chart(fig_resp, use_container_width=True)
-
+            st.plotly_chart(px.pie(df, values='Monto', names='Responsable', hole=0.4, title="Johan vs Madi"), use_container_width=True)
     with c3:
-        st.write("**🏷️ Gastos por Categoría**")
-        fig_cat = px.bar(df.groupby(col_cat)['Monto'].sum().reset_index(), x=col_cat, y='Monto', color=col_cat)
-        st.plotly_chart(fig_cat, use_container_width=True)
+        st.plotly_chart(px.bar(df.groupby(col_cat)['Monto'].sum().reset_index(), x=col_cat, y='Monto', title="Categorías"), use_container_width=True)
 
-    # --- 6. TENDENCIA Y TOP 5 ---
+    # --- 📉 TENDENCIA Y TOP 5 ---
     st.divider()
-    st.subheader("📈 Tendencia de Gasto en el Tiempo")
-    
-    if not df.empty and df['Fecha'].notnull().any():
+    if not df.empty:
+        st.subheader("📈 Tendencia de Gasto")
         df_linea = df.groupby(df['Fecha'].dt.date)['Monto'].sum().reset_index()
-        df_linea.columns = ['Fecha_Corta', 'Total_Gasto']
-        fig_tendencia = px.line(df_linea, x='Fecha_Corta', y='Total_Gasto', markers=True)
-        st.plotly_chart(fig_tendencia, use_container_width=True)
+        st.plotly_chart(px.line(df_linea, x='Fecha', y='Monto', markers=True), use_container_width=True)
 
-        st.divider()
-        st.subheader("🔝 Los 5 gastos más fuertes del mes")
+        st.subheader("🔝 Los 5 gastos más fuertes")
         top_5 = df.nlargest(5, 'Monto')[['Fecha', 'Concepto', 'Monto', 'Banco']]
         top_5['Fecha'] = top_5['Fecha'].dt.strftime('%d/%m/%Y')
         st.table(top_5)
 
-    # --- 7. ORÁCULO IA ---
+    # --- 🤖 ORÁCULO IA ---
     st.divider()
     st.subheader("🤖 Oráculo IA")
-    df_variables = df[df['Monto'] < 200] 
-    df_fijos = df[df['Monto'] >= 200]
+    # Filtramos montos variables (menores a 200) y fijos (como el iPhone)
+    df_var = df[df['Monto'] < 200]
+    df_fij = df[df['Monto'] >= 200]
     
-    promedio_diario = df_variables['Monto'].sum() / max(((datetime.now() - df['Fecha'].min()).days + 1), 1)
-    proyeccion = (promedio_diario * 30) + df_fijos['Monto'].sum()
+    dias = max(((datetime.now() - df['Fecha'].min()).days + 1), 1)
+    promedio_diario = df_var['Monto'].sum() / dias
+    proyeccion = (promedio_diario * 30) + df_fij['Monto'].sum()
     
     c_ia1, c_ia2 = st.columns(2)
     with c_ia1:
         if proyeccion > INGRESOS_TOTALES:
-            st.error(f"Proyección: S/ {proyeccion:.2f}. ¡Superarás tus ingresos!")
+            st.error(f"La IA estima S/ {proyeccion:.2f} a fin de mes. ¡Atención!")
         else:
-            st.success(f"Proyección: S/ {proyeccion:.2f}. ¡Todo bajo control!")
-    
+            st.success(f"La IA estima S/ {proyeccion:.2f}. ¡Van por buen camino!")
     with c_ia2:
-        st.info(f"Ahorro estimado: **S/ {max(0, INGRESOS_TOTALES - proyeccion):.2f}**")
+        st.info(f"Ahorro proyectado: **S/ {max(0, INGRESOS_TOTALES - proyeccion):.2f}**")
 
-    # --- 8. REGISTRO Y METAS ---
-    st.subheader("📂 Registro Completo")
+    # --- 📂 REGISTRO MAESTRO ---
+    st.subheader("📂 Registro Maestro")
     df_ver = df.copy()
     df_ver['Fecha'] = df_ver['Fecha'].dt.strftime('%d/%m/%Y')
     st.dataframe(df_ver.sort_values(by='Monto', ascending=False), use_container_width=True)
 
-    st.sidebar.divider()
-    st.sidebar.subheader("🎯 Meta de Ahorro")
-    meta_ahorro = st.sidebar.number_input("Meta del mes (S/):", value=500.0)
-    ahorro_actual = INGRESOS_TOTALES - gastos_totales
-    st.sidebar.progress(min(max(ahorro_actual / meta_ahorro, 0.0), 1.0) if meta_ahorro > 0 else 0.0)
-    st.sidebar.write(f"Llevan ahorrado: **S/ {ahorro_actual:.2f}**")
-
 except Exception as e:
-    st.error(f"Error de conexión o de datos: {e}")
+    st.error(f"Error detectado: {e}")
