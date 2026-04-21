@@ -204,7 +204,10 @@ try:
 
     # --- 7. REGISTRO MAESTRO ---
     st.subheader("📂 Registro Completo de Excel")
-    st.dataframe(df.sort_values(by='Fecha', ascending=False), use_container_width=True)
+    # Formateamos la fecha para que se vea limpia en la tabla
+    df_ver = df.copy()
+    df_ver['Fecha'] = df_ver['Fecha'].dt.strftime('%d/%m/%Y')
+    st.dataframe(df_ver.sort_values(by='Fecha', ascending=False), use_container_width=True)
 
 except Exception as e:
     st.error(f"Error de conexión o de datos: {e}")
