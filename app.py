@@ -46,6 +46,13 @@ st.sidebar.write("*(Marca si ya pagaste la cuota del mes)*")
 pagos_confirmados = {}
 for banco in FECHAS_BANCOS.keys():
     pagos_confirmados[banco] = st.sidebar.checkbox(f"Pagué {banco}", key=f"pay_{banco}")
+    # --- FILTRO DE PRIORIDAD DE PAGOS ---
+st.sidebar.divider()
+st.sidebar.subheader("🎯 Enfoque de Pagos")
+fase_pago = st.sidebar.radio(
+    "Ver vencimientos de:",
+    ["Próximos (BCP/BBVA - 05 May)", "Siguiente (Interbank - 21 May)", "Futuro (Scotiabank - Jun)", "Ver Todo"]
+)
 
 # --- 3. CONEXIÓN A GOOGLE SHEETS ---
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
@@ -101,15 +108,23 @@ try:
         col_cat = "Categoría"
         df[col_cat] = df['Concepto'].apply(clasificador_ia)
 
-    # --- 3. MÉTRICAS ---
-    gastos_totales = df['Monto'].sum()
-    saldo_actual = INGRESOS_TOTALES - gastos_totales
-    porcentaje_gastado = (gastos_totales / INGRESOS_TOTALES) if INGRESOS_TOTALES > 0 else 0
+    # --- 3. MÉTRICAS DINÁMICAS ---
+    if fase_pago == "Próximos (BCP/BBVA - 05 May)":
+        df_filtrado = df[df['Banco'].isin(['BCP', 'BBVA'])]
+    elif fase_pago == "Siguiente (Interbank - 21 May)":
+        df_filtrado = df[df['Banco'] == 'INTERBANK']
+    elif fase_pago == "Futuro (Scotiabank - Jun)":
+        df_filtrado = df[df['Banco'] == 'SCOTIABANK']
+    else:
+        df_filtrado = df
 
+    gastos_fase = df_filtrado['Monto'].sum()
+    saldo_proyectado = INGRESOS_TOTALES - gastos_fase
+    
     m1, m2, m3 = st.columns(3)
     m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
-    m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
-    m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
+    m2.metric(f"Total {fase_pago.split(' ')[0]}", f"S/ {gastos_fase:.2f}")
+    m3.metric("Saldo tras estos pagos", f"S/ {saldo_proyectado:.2f}")
     
     # --- 4. RECORDATORIOS DE FACTURACIÓN (CORREGIDO - NO DUPLICADO) ---
     st.subheader("🔔 Recordatorios de Facturación")
