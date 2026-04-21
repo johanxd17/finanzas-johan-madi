@@ -44,7 +44,7 @@ url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 # A partir de aquí sigue tu bloque de 'try:' con la carga de datos...
 
 # Tus ingresos reales
-INGRESOS_TOTALES = 1090.00 + 570.00 + 107.14
+INGRESOS_TOTALES = 960.00 + 560.00 + 107.14
 
 # --- 2. IA DE CLASIFICACIÓN (NLP) ---
 def clasificador_ia(concepto):
