@@ -34,10 +34,47 @@ FECHAS_BANCOS = {
     'SCOTIABANK': [11, 8]
 }
 
-# Botón de actualización en el Sidebar
-if st.sidebar.button('🔄 Sincronizar Datos'):
-    st.cache_data.clear()
-    st.rerun()
+# --- CONFIGURACIÓN DE FECHAS (Pon aquí tus días reales) ---
+    FECHAS_BANCOS = {
+        'BCP': [20, 10],      # [Corte, Pago]
+        'BBVA': [15, 5],
+        'INTERBANK': [25, 15],
+        'SCOTIABANK': [18, 8]
+    }
+
+    # --- 1. CONSOLA DE PAGOS EN EL SIDEBAR ---
+    st.sidebar.divider()
+    st.sidebar.subheader("✅ Confirmar Pagos realizados")
+    st.sidebar.write("*(Marca si ya pagaste la cuota del mes)*")
+    
+    pagos_confirmados = {}
+    for banco in FECHAS_BANCOS.keys():
+        # Esto crea un switch para cada banco que se guarda solo en la sesión actual
+        pagos_confirmados[banco] = st.sidebar.checkbox(f"Pagué {banco}", key=f"pay_{banco}")
+
+    # --- 2. SECCIÓN DE ALERTAS EN EL PANEL ---
+    st.subheader("🔔 Recordatorios de Facturación")
+    hoy = datetime.now()
+    dia_actual = hoy.day
+    
+    columnas_alertas = st.columns(len(FECHAS_BANCOS))
+    
+    for i, (banco, fechas) in enumerate(FECHAS_BANCOS.items()):
+        dia_corte, dia_pago = fechas
+        
+        with columnas_alertas[i]:
+            # Lógica: Si el usuario marcó el checkbox en el sidebar, ignoramos la alerta
+            if pagos_confirmados[banco]:
+                st.success(f"**{banco}**\n\n✅ Pago Confirmado")
+            else:
+                if dia_actual <= dia_pago:
+                    dias_faltantes = dia_pago - dia_actual
+                    if dias_faltantes <= 5:
+                        st.error(f"**{banco}**\n\n¡Pagar en {dias_faltantes} días!")
+                    else:
+                        st.info(f"**{banco}**\n\nFaltan {dias_faltantes} días.")
+                else:
+                    st.warning(f"**{banco}**\n\nCierre el día {dia_corte}")
 
 # --- 3. CONEXIÓN A GOOGLE SHEETS ---
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
