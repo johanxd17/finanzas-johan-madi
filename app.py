@@ -66,32 +66,32 @@ try:
     # 1. Carga de datos
     df = pd.read_csv(url)
     
-    # 2. Limpieza de nombres de columnas (importante para encontrar 'Fecha')
+    # 2. Limpieza de nombres de columnas
     df.columns = [c.strip() for c in df.columns]
-    bancos_disponibles = sorted(df['Banco'].unique())
+
+    # --- LIMPIEZA CRÍTICA DE DATOS (Mueve esto aquí arriba) ---
+    if 'Monto' in df.columns:
+        # Forzamos que sea número. Si hay texto, lo vuelve NaN y luego 0.
+        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+    
+    # Filtro de Bancos en el Sidebar
+    bancos_disponibles = sorted(df['Banco'].unique().astype(str))
     banco_selec = st.sidebar.multiselect("Seleccionar Bancos:", options=bancos_disponibles, default=bancos_disponibles)
     df = df[df['Banco'].isin(banco_selec)]
 
-    # 3. Normalización de Bancos y Responsables (Evita repeticiones en los gráficos)
+    # 3. Normalización
     if 'Banco' in df.columns:
         df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
     
     if 'Responsable' in df.columns:
-        # Esto unifica "Johan ", "johan" y "Johan" en uno solo
         df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
 
-    # 4. Conversión de Monto a número
-    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-
-    # 5. Conversión de Fecha (Solución para que se muestren)
-    # dayfirst=True es vital porque en tu Excel usas formato "14 abril" o día/mes
+    # 4. Conversión de Fecha
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
-        # Si alguna fecha no se pudo convertir, le ponemos la fecha de hoy para no romper el gráfico
         df['Fecha'] = df['Fecha'].fillna(datetime.now())
 
-    # 6. Auto-llenado de categorías (Tu IA interna)
-    # Buscamos la columna que contenga "Categor" (Categoría o Categoría )
+    # 5. Auto-llenado de categorías (Tu IA interna)
     columnas_categoria = [c for c in df.columns if 'Categor' in c]
     if columnas_categoria:
         col_cat = columnas_categoria[0]
@@ -102,14 +102,10 @@ try:
             axis=1
         )
     else:
-        # Si no existe la columna en el Excel, la creamos
         col_cat = "Categoría"
         df[col_cat] = df['Concepto'].apply(clasificador_ia)
 
-    gastos_totales = df['Monto'].sum()
-
-    # --- 3. CABECERA Y MÉTRICAS ---
-    
+    # --- 3. MÉTRICAS ---
     gastos_totales = df['Monto'].sum()
     saldo_actual = INGRESOS_TOTALES - gastos_totales
     porcentaje_gastado = (gastos_totales / INGRESOS_TOTALES) if INGRESOS_TOTALES > 0 else 0
@@ -119,13 +115,10 @@ try:
     m2.metric("Gasto Acumulado", f"S/ {gastos_totales:.2f}", delta=f"{porcentaje_gastado:.1%}", delta_color="inverse")
     m3.metric("Fondo de Maniobra", f"S/ {saldo_actual:.2f}")
 
-    # --- 4. TERMÓMETRO DE SALUD (BRILLANTE) ---
+    # --- 4. TERMÓMETRO ---
     st.write("### 🌡️ Nivel de Salud Financiera")
-    
-    # La barra de progreso se mantiene para ver el avance visual
     st.progress(min(porcentaje_gastado, 1.0))
     
-    # Aquí aplicamos el "Brillo" según el nivel de gasto
     if porcentaje_gastado < 0.7:
         st.success(f"✅ ESTADO SALUDABLE: Has gastado el {porcentaje_gastado:.1%}")
     elif porcentaje_gastado < 0.9:
@@ -135,13 +128,12 @@ try:
 
     st.divider()
 
-    # --- 5. BLOQUE DE ANÁLISIS (BANCOS, PERSONAS, CATEGORÍAS) ---
+    # --- 5. BLOQUE DE ANÁLISIS ---
     st.subheader("📊 Análisis de Movimientos")
     c1, c2, c3 = st.columns(3)
     
     with c1:
         st.write("**💳 Gestión por Bancos**")
-        # Aquí controlas BCP, BBVA, Interbank y Scotia
         fig_banco = px.pie(df, values='Monto', names='Banco', hole=0.4, color_discrete_sequence=px.colors.qualitative.Safe)
         st.plotly_chart(fig_banco, use_container_width=True)
 
@@ -156,86 +148,52 @@ try:
         fig_cat = px.bar(df.groupby(col_cat)['Monto'].sum().reset_index(), x=col_cat, y='Monto', color=col_cat)
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    # --- NUEVA SECCIÓN: GRÁFICO DE TENDENCIA (TÉCNICO) ---
+    # --- 6. TENDENCIA Y TOP 5 ---
     st.divider()
     st.subheader("📈 Tendencia de Gasto en el Tiempo")
     
-    # Preparación de datos para la línea
     if not df.empty and df['Fecha'].notnull().any():
         df_linea = df.groupby(df['Fecha'].dt.date)['Monto'].sum().reset_index()
         df_linea.columns = ['Fecha_Corta', 'Total_Gasto']
-        
-        # Creamos el gráfico de líneas (El look de terminal financiera)
-        fig_tendencia = px.line(df_linea, x='Fecha_Corta', y='Total_Gasto', 
-                                title="Evolución de Salidas de Efectivo por Día",
-                                markers=True) # Añade puntitos en cada día
-        
-        # Mejoras visuales al gráfico
-        fig_tendencia.update_layout(xaxis_title="Día", yaxis_title="Soles Gastados")
-        
+        fig_tendencia = px.line(df_linea, x='Fecha_Corta', y='Total_Gasto', markers=True)
         st.plotly_chart(fig_tendencia, use_container_width=True)
-        # ... después de st.plotly_chart(fig_tendencia, use_container_width=True)
-    
+
         st.divider()
         st.subheader("🔝 Los 5 gastos más fuertes del mes")
         top_5 = df.nlargest(5, 'Monto')[['Fecha', 'Concepto', 'Monto', 'Banco']]
-        # Formateamos la fecha del Top 5 para que no salgan horas
         top_5['Fecha'] = top_5['Fecha'].dt.strftime('%d/%m/%Y')
         st.table(top_5)
-    else:
-        st.info("No hay datos de fecha válidos para generar la tendencia.")
 
-    # --- 6. ANALISTA PREDICTIVO (IA) MEJORADO ---
+    # --- 7. ORÁCULO IA ---
     st.divider()
     st.subheader("🤖 Oráculo IA")
+    df_variables = df[df['Monto'] < 200] 
+    df_fijos = df[df['Monto'] >= 200]
+    
+    promedio_diario = df_variables['Monto'].sum() / max(((datetime.now() - df['Fecha'].min()).days + 1), 1)
+    proyeccion = (promedio_diario * 30) + df_fijos['Monto'].sum()
+    
+    c_ia1, c_ia2 = st.columns(2)
+    with c_ia1:
+        if proyeccion > INGRESOS_TOTALES:
+            st.error(f"Proyección: S/ {proyeccion:.2f}. ¡Superarás tus ingresos!")
+        else:
+            st.success(f"Proyección: S/ {proyeccion:.2f}. ¡Todo bajo control!")
+    
+    with c_ia2:
+        st.info(f"Ahorro estimado: **S/ {max(0, INGRESOS_TOTALES - proyeccion):.2f}**")
 
-    if not df.empty:
-        # LIMPIEZA PREVENTIVA: Aseguramos que la columna Monto sea numérica
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-
-        # 1. Separamos gastos variables de los fijos (Como el iPhone de 442.21)
-        # Ahora la comparación funcionará porque ambos son números
-        df_variables = df[df['Monto'] < 200] 
-        df_fijos = df[df['Monto'] >= 200]
-        
-        gastos_variables_totales = df_variables['Monto'].sum()
-        gastos_fijos_totales = df_fijos['Monto'].sum()
-
-        # 2. Promedio diario solo de lo variable
-        dias_min = df['Fecha'].min()
-        dias_transcurridos = (datetime.now() - dias_min).days + 1
-        promedio_variable_diario = gastos_variables_totales / max(dias_transcurridos, 1)
-        
-        # 3. Proyectamos variable a 30 días y sumamos el fijo una sola vez
-        proyeccion_final = (promedio_variable_diario * 30) + gastos_fijos_totales
-        
-        c_ia1, c_ia2 = st.columns(2)
-        with c_ia1:
-            if proyeccion_final > INGRESOS_TOTALES:
-                st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
-            else:
-                st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
-        
-        with c_ia2:
-            ahorro = max(0, INGRESOS_TOTALES - proyeccion_final)
-            st.info(f"Ahorro estimado: **S/ {ahorro:.2f}**")
-
-    # --- 7. REGISTRO MAESTRO ---
-    st.subheader("📂 Registro Completo de Excel")
-    # Formateamos la fecha para que se vea limpia en la tabla
+    # --- 8. REGISTRO Y METAS ---
+    st.subheader("📂 Registro Completo")
     df_ver = df.copy()
     df_ver['Fecha'] = df_ver['Fecha'].dt.strftime('%d/%m/%Y')
-    st.dataframe(df_ver.sort_values(by='Fecha', ascending=False), use_container_width=True)
-    # ... después del Registro Maestro
-    
-    # --- NUEVO: META DE AHORRO ---
+    st.dataframe(df_ver.sort_values(by='Monto', ascending=False), use_container_width=True)
+
     st.sidebar.divider()
     st.sidebar.subheader("🎯 Meta de Ahorro")
     meta_ahorro = st.sidebar.number_input("Meta del mes (S/):", value=500.0)
     ahorro_actual = INGRESOS_TOTALES - gastos_totales
-    
-    progreso = min(max(ahorro_actual / meta_ahorro, 0.0), 1.0) if meta_ahorro > 0 else 0.0
-    st.sidebar.progress(progreso)
+    st.sidebar.progress(min(max(ahorro_actual / meta_ahorro, 0.0), 1.0) if meta_ahorro > 0 else 0.0)
     st.sidebar.write(f"Llevan ahorrado: **S/ {ahorro_actual:.2f}**")
 
 except Exception as e:
