@@ -158,4 +158,20 @@ try:
 
         dias_transcurridos = (datetime.now() - df['Fecha'].min()).days + 1
         promedio_variable_diario = gastos_variables_totales / max(dias_transcurridos, 1)
-        proyeccion_final =
+        proyeccion_final = (promedio_variable_diario * 30) + gastos_fijos_totales
+    
+        c_ia1, c_ia2 = st.columns(2)
+        with c_ia1:
+            if proyeccion_final > INGRESOS_TOTALES:
+                st.error(f"La IA estima un gasto de S/ {proyeccion_final:.2f} a fin de mes. ¡Cuidado con los excedentes!")
+            else:
+                st.success(f"Proyección: S/ {proyeccion_final:.2f}. ¡Todo bajo control, Johan!")
+
+    # --- 7. REGISTRO MAESTRO ---
+    st.subheader("📂 Registro Completo de Excel")
+    df_ver = df.copy()
+    df_ver['Fecha'] = df_ver['Fecha'].dt.strftime('%d/%m/%Y')
+    st.dataframe(df_ver.sort_values(by='Fecha', ascending=False), use_container_width=True)
+
+except Exception as e:
+    st.error(f"Error de conexión o de datos: {e}")
