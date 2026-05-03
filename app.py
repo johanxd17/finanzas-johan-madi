@@ -43,13 +43,6 @@ pagos_confirmados = {}
 for banco in FECHAS_BANCOS.keys():
     pagos_confirmados[banco] = st.sidebar.checkbox(f"Pagué {banco}", key=f"pay_{banco}")
 
-st.sidebar.divider()
-st.sidebar.subheader("🎯 Enfoque de Pagos")
-fase_pago = st.sidebar.radio(
-    "Ver vencimientos de:",
-    ["Próximos (BCP/BBVA - 05 May)", "Siguiente (Interbank - 21 May)", "Futuro (Scotiabank - Jun)", "Ver Todo"]
-)
-
 # --- 3. CONEXIÓN A DATOS ---
 SHEET_ID = "1ju4BGM20CCdDnPNLzSPv5RWjlBi01uq7XO-6x-KnsWc"
 url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
@@ -67,86 +60,100 @@ try:
     df = pd.read_csv(url)
     df.columns = [c.strip() for c in df.columns]
 
-    # --- NORMALIZACIÓN DE FECHAS ---
-    if 'Fecha' in df.columns:
-        df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
-        df['Fecha'] = df['Fecha'].fillna(datetime.now())
-    
-    if 'Monto' in df.columns:
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-    
+    # NORMALIZACIÓN
+    df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce').fillna(datetime.now())
+    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
     if 'Responsable' in df.columns:
         df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
 
-    # --- FILTRO POR CICLO (HISTORIAL) ---
+    # FILTRO POR CICLO
     st.sidebar.divider()
     st.sidebar.subheader("📅 Ver Historial")
-    if 'Ciclo' in df.columns:
-        ciclos_disponibles = df['Ciclo'].dropna().unique().tolist()
-        mes_seleccionado = st.sidebar.selectbox("Seleccionar Ciclo:", ["Ciclo Actual"] + ciclos_disponibles)
-    else:
-        mes_seleccionado = "Ciclo Actual"
+    ciclos_disponibles = df['Ciclo'].dropna().unique().tolist() if 'Ciclo' in df.columns else []
+    mes_seleccionado = st.sidebar.selectbox("Seleccionar Ciclo:", ["Ciclo Actual"] + ciclos_disponibles)
 
     if mes_seleccionado != "Ciclo Actual":
         df_filtrado = df[df['Ciclo'] == mes_seleccionado]
-        fase_pago_display = f"Ciclo: {mes_seleccionado}"
     else:
-        if fase_pago == "Próximos (BCP/BBVA - 05 May)":
-            df_filtrado = df[df['Banco'].isin(['BCP', 'BBVA'])]
-        elif fase_pago == "Siguiente (Interbank - 21 May)":
-            df_filtrado = df[df['Banco'] == 'INTERBANK']
-        elif fase_pago == "Futuro (Scotiabank - Jun)":
-            df_filtrado = df[df['Banco'] == 'SCOTIABANK']
-        else:
-            df_filtrado = df
-        fase_pago_display = fase_pago
+        df_filtrado = df
 
-    # --- MÉTRICAS ---
-    gastos_fase = df_filtrado['Monto'].sum()
-    saldo_proyectado = INGRESOS_TOTALES - gastos_fase
+    # --- MÉTRICAS PRINCIPALES ---
+    gastos_totales = df_filtrado['Monto'].sum()
+    saldo_proyectado = INGRESOS_TOTALES - gastos_totales
     
     m1, m2, m3 = st.columns(3)
     m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
-    m2.metric(f"Total {fase_pago_display.split(' ')[0]}", f"S/ {gastos_fase:.2f}")
+    m2.metric("Gastos del Ciclo", f"S/ {gastos_totales:.2f}")
     m3.metric("Saldo Disponible", f"S/ {saldo_proyectado:.2f}")
 
-    # --- GRÁFICOS ANALÍTICOS (AQUÍ ESTÁ TODO) ---
+    # --- BLOQUE 1: ALERTAS DE BANCOS (RESTABLECIDO) ---
+    st.subheader("🔔 Alertas de Pago de Tarjetas")
+    hoy = datetime.now().day
+    columnas_alertas = st.columns(len(FECHAS_BANCOS))
+    
+    for i, (banco, fechas) in enumerate(FECHAS_BANCOS.items()):
+        dia_corte, dia_pago = fechas
+        with columnas_alertas[i]:
+            if pagos_confirmados.get(banco):
+                st.success(f"**{banco}**\n\n✅ Pagado")
+            elif hoy <= dia_pago:
+                faltan = dia_pago - hoy
+                if faltan <= 3: st.error(f"**{banco}**\n\n🚨 ¡Faltan {faltan} días!")
+                else: st.info(f"**{banco}**\n\nFaltan {faltan} días")
+            else:
+                st.warning(f"**{banco}**\n\nCorte: Día {dia_corte}")
+
+    # --- BLOQUE 2: METAS Y CUOTAS (RESTABLECIDO) ---
+    st.divider()
+    col_cuotas, col_ahorro = st.columns(2)
+
+    with col_cuotas:
+        st.subheader("🎯 Control de Cuotas")
+        cuotas_data = [
+            {"Compromiso": "Préstamo BBVA", "Monto": 174.12, "Vence": "05-May"},
+            {"Compromiso": "Nintendo Switch", "Monto": 164.58, "Vence": "05-May"},
+            {"Compromiso": "Powerpay (iPhones)", "Monto": 442.21, "Vence": "11-May"}
+        ]
+        st.table(cuotas_data)
+
+    with col_ahorro:
+        st.subheader("💰 Fondo de Emergencia")
+        meta = 2000.0
+        progreso = min(max(0, saldo_proyectado) / meta, 1.0)
+        st.progress(progreso)
+        st.write(f"Progreso: {progreso:.1%} (S/ {max(0, saldo_proyectado):.2f} de S/ {meta:.2f})")
+
+    # --- BLOQUE 3: ANÁLISIS GRÁFICO (REINTEGRADO JOHAN VS MADI) ---
     st.divider()
     st.subheader("📊 Análisis de Movimientos")
-    c1, c2, c3 = st.columns(3)
+    g1, g2, g3 = st.columns(3)
     
-    with c1:
-        st.write("**💳 Gestión por Bancos**")
-        fig_banco = px.pie(df_filtrado, values='Monto', names='Banco', hole=0.4)
-        st.plotly_chart(fig_banco, use_container_width=True)
+    with g1:
+        st.write("**💳 Por Banco**")
+        st.plotly_chart(px.pie(df_filtrado, values='Monto', names='Banco', hole=0.4), use_container_width=True)
     
-    with c2:
-        st.write("**👥 Johan vs Madi**") # <--- TU GRÁFICO REINTEGRADO
+    with g2:
+        st.write("**👥 Johan vs Madi**")
         if 'Responsable' in df_filtrado.columns:
-            fig_resp = px.pie(df_filtrado, values='Monto', names='Responsable', hole=0.4)
-            st.plotly_chart(fig_resp, use_container_width=True)
+            st.plotly_chart(px.pie(df_filtrado, values='Monto', names='Responsable', hole=0.4), use_container_width=True)
     
-    with c3:
+    with g3:
         st.write("**🏷️ Por Categoría**")
         df_filtrado['Categoría'] = df_filtrado['Concepto'].apply(clasificador_ia)
         df_cat = df_filtrado.groupby('Categoría')['Monto'].sum().reset_index()
-        fig_cat = px.bar(df_cat, x='Categoría', y='Monto', color='Categoría')
-        fig_cat.update_layout(showlegend=False)
-        st.plotly_chart(fig_cat, use_container_width=True)
+        st.plotly_chart(px.bar(df_cat, x='Categoría', y='Monto', color='Categoría'), use_container_width=True)
 
-    # --- ORÁCULO IA ---
+    # --- BLOQUE 4: ORÁCULO E HISTORIAL ---
     st.divider()
     st.subheader("🤖 Oráculo IA")
-    promedio_diario = (df_filtrado['Monto'].sum() / datetime.now().day) if datetime.now().day > 0 else 0
-    proyeccion = promedio_diario * 30
+    proyeccion = (gastos_totales / datetime.now().day) * 30 if datetime.now().day > 0 else 0
     if proyeccion > INGRESOS_TOTALES:
-        st.error(f"¡Cuidado! Proyección: S/ {proyeccion:.2f}. Supera tus ingresos.")
+        st.error(f"IA: Proyección S/ {proyeccion:.2f}. ¡Peligro de sobregiro!")
     else:
-        st.success(f"Todo bajo control. Proyección fin de mes: S/ {proyeccion:.2f}")
+        st.success(f"IA: Proyección S/ {proyeccion:.2f}. Dentro del presupuesto.")
 
-    # --- REGISTRO MAESTRO ---
-    st.subheader("📂 Registro Completo")
+    st.subheader("📂 Registro de Movimientos")
     st.dataframe(df_filtrado, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Error técnico: {e}")
+    st.error(f"Error: {e}")
