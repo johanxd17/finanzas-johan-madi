@@ -93,7 +93,7 @@ try:
         df_base = df
         fase_display = "Ciclo Actual"
 
-    if fase_pago == "Próximos (BCP/BBVA - 05 May)":
+    if fase_pago == "Pros (BCP/BBVA - 05 May)":
         df_filtrado = df_base[df_base['Banco'].isin(['BCP', 'BBVA'])]
     elif fase_pago == "Siguiente (Interbank - 21 May)":
         df_filtrado = df_base[df_base['Banco'] == 'INTERBANK']
@@ -102,7 +102,7 @@ try:
     else:
         df_filtrado = df_base
 
-    # --- MÉTRICAS (CON PAGO TOTAL BBVA RECONOCIDO) ---
+    # --- MÉTRICAS ---
     gastos_totales_ciclo = df_base['Monto'].sum()
     gastos_vista_actual = df_filtrado['Monto'].sum()
     saldo_proyectado = INGRESOS_TOTALES - gastos_totales_ciclo
@@ -159,7 +159,7 @@ try:
         fig_cat.update_layout(showlegend=False)
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    # --- CONTROL DE COMPROMISOS (BBVA TOTALIZADO) ---
+    # --- CONTROL DE COMPROMISOS (FORMATO CORREGIDO) ---
     st.divider()
     st.subheader("🎯 Control de Compromisos")
     cuotas_list = [
@@ -167,9 +167,12 @@ try:
         {"Compromiso": "Nintendo Switch 2", "Monto": 164.58, "Vence": "05-May", "Estado": "Falta pagar"},
         {"Compromiso": "Powerpay (iPhones)", "Monto": 442.21, "Vence": "11-May", "Estado": "Falta pagar"}
     ]
-    st.table(cuotas_list)
+    # Formateamos el monto para evitar ceros extras
+    df_cuotas = pd.DataFrame(cuotas_list)
+    df_cuotas['Monto'] = df_cuotas['Monto'].map('{:,.2f}'.format)
+    st.table(df_cuotas)
 
-    # --- ORÁCULO IA ---
+    # --- ORÁCULO IA (SIN ERROR DE DeltaGenerator) ---
     st.divider()
     st.subheader("🤖 Oráculo IA")
     proy = (gastos_totales_ciclo / datetime.now().day) * 30 if datetime.now().day > 0 else 0
