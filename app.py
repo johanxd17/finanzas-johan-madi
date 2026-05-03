@@ -23,11 +23,11 @@ with col_titulo:
 
 st.divider()
 
-# --- 2. CONFIGURACIÓN DE INGRESOS (Ajustado a tus montos actuales) ---
+# --- 2. CONFIGURACIÓN DE INGRESOS ---
 MI_SUELDO = 1068.29
 SUELDO_MADI = 602.00
 AHORRO_YAPE = 68.00
-APOYO_MAMA = 500.00 # El extra que te envió tu mamá
+APOYO_MAMA = 500.00
 INGRESOS_TOTALES = MI_SUELDO + SUELDO_MADI + AHORRO_YAPE + APOYO_MAMA
 
 FECHAS_BANCOS = {
@@ -37,7 +37,7 @@ FECHAS_BANCOS = {
     'SCOTIABANK': [11, 8]
 }
 
-# --- SIDEBAR: PAGOS Y FILTROS ---
+# --- SIDEBAR ---
 st.sidebar.subheader("✅ Confirmar Pagos")
 pagos_confirmados = {}
 for banco in FECHAS_BANCOS.keys():
@@ -57,42 +57,40 @@ url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 def clasificador_ia(concepto):
     if pd.isna(concepto): return "❓ Otros"
     concepto = str(concepto).lower().strip()
-    if any(word in concepto for word in ['menu', 'comida', 'almuerzo', 'moka']): return "🍱 Alimentación/Mascota"
+    if any(word in concepto for word in ['menu', 'comida', 'moka']): return "🍱 Alimentación"
     if any(word in concepto for word in ['pasaje', 'bus', 'taxi']): return "🚗 Transporte"
     if any(word in concepto for word in ['cuota', 'prestamo', 'banco', 'iphone']): return "💳 Deudas/Fijos"
-    if any(word in concepto for word in ['cine', 'juego', 'switch']): return "🎮 Diversión"
+    if any(word in concepto for word in ['juego', 'switch']): return "🎮 Diversión"
     return "❓ Otros"
 
 try:
     df = pd.read_csv(url)
     df.columns = [c.strip() for c in df.columns]
 
-    # --- NORMALIZACIÓN CRÍTICA (Antes de filtrar) ---
+    # --- NORMALIZACIÓN DE FECHAS ---
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
         df['Fecha'] = df['Fecha'].fillna(datetime.now())
     
     if 'Monto' in df.columns:
         df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
+    
+    if 'Responsable' in df.columns:
+        df['Responsable'] = df['Responsable'].astype(str).str.strip().str.capitalize()
 
-    # --- FILTRO HISTÓRICO POR COLUMNA "CICLO" ---
+    # --- FILTRO POR CICLO (HISTORIAL) ---
     st.sidebar.divider()
     st.sidebar.subheader("📅 Ver Historial")
-    
-    # Usamos la columna 'Ciclo' que creaste en Excel
     if 'Ciclo' in df.columns:
         ciclos_disponibles = df['Ciclo'].dropna().unique().tolist()
         mes_seleccionado = st.sidebar.selectbox("Seleccionar Ciclo:", ["Ciclo Actual"] + ciclos_disponibles)
     else:
         mes_seleccionado = "Ciclo Actual"
-        st.sidebar.warning("No se encontró la columna 'Ciclo' en el Excel.")
 
-    # Lógica de filtrado
     if mes_seleccionado != "Ciclo Actual":
         df_filtrado = df[df['Ciclo'] == mes_seleccionado]
-        fase_pago_display = f"Histórico: {mes_seleccionado}"
+        fase_pago_display = f"Ciclo: {mes_seleccionado}"
     else:
-        # Filtro por bancos (Tu lógica original)
         if fase_pago == "Próximos (BCP/BBVA - 05 May)":
             df_filtrado = df[df['Banco'].isin(['BCP', 'BBVA'])]
         elif fase_pago == "Siguiente (Interbank - 21 May)":
@@ -112,26 +110,43 @@ try:
     m2.metric(f"Total {fase_pago_display.split(' ')[0]}", f"S/ {gastos_fase:.2f}")
     m3.metric("Saldo Disponible", f"S/ {saldo_proyectado:.2f}")
 
-    # --- CATEGORÍAS ---
-    col_cat = "Categoría"
-    df_filtrado[col_cat] = df_filtrado['Concepto'].apply(clasificador_ia)
-
-    # --- GRÁFICOS ---
+    # --- GRÁFICOS ANALÍTICOS (AQUÍ ESTÁ TODO) ---
     st.divider()
-    c1, c2 = st.columns(2)
+    st.subheader("📊 Análisis de Movimientos")
+    c1, c2, c3 = st.columns(3)
+    
     with c1:
-        st.write("**💳 Gastos por Banco**")
+        st.write("**💳 Gestión por Bancos**")
         fig_banco = px.pie(df_filtrado, values='Monto', names='Banco', hole=0.4)
         st.plotly_chart(fig_banco, use_container_width=True)
+    
     with c2:
-        st.write("**🏷️ Gastos por Categoría**")
-        df_cat = df_filtrado.groupby(col_cat)['Monto'].sum().reset_index()
-        fig_cat = px.bar(df_cat, x=col_cat, y='Monto', color=col_cat)
+        st.write("**👥 Johan vs Madi**") # <--- TU GRÁFICO REINTEGRADO
+        if 'Responsable' in df_filtrado.columns:
+            fig_resp = px.pie(df_filtrado, values='Monto', names='Responsable', hole=0.4)
+            st.plotly_chart(fig_resp, use_container_width=True)
+    
+    with c3:
+        st.write("**🏷️ Por Categoría**")
+        df_filtrado['Categoría'] = df_filtrado['Concepto'].apply(clasificador_ia)
+        df_cat = df_filtrado.groupby('Categoría')['Monto'].sum().reset_index()
+        fig_cat = px.bar(df_cat, x='Categoría', y='Monto', color='Categoría')
+        fig_cat.update_layout(showlegend=False)
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    # --- REGISTRO ---
-    st.subheader("📂 Detalle de Movimientos")
+    # --- ORÁCULO IA ---
+    st.divider()
+    st.subheader("🤖 Oráculo IA")
+    promedio_diario = (df_filtrado['Monto'].sum() / datetime.now().day) if datetime.now().day > 0 else 0
+    proyeccion = promedio_diario * 30
+    if proyeccion > INGRESOS_TOTALES:
+        st.error(f"¡Cuidado! Proyección: S/ {proyeccion:.2f}. Supera tus ingresos.")
+    else:
+        st.success(f"Todo bajo control. Proyección fin de mes: S/ {proyeccion:.2f}")
+
+    # --- REGISTRO MAESTRO ---
+    st.subheader("📂 Registro Completo")
     st.dataframe(df_filtrado, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Se encontró un detalle técnico: {e}")
+    st.error(f"Error técnico: {e}")
