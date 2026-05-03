@@ -49,7 +49,7 @@ st.sidebar.divider()
 st.sidebar.subheader("🎯 Enfoque de Pagos")
 fase_pago = st.sidebar.radio(
     "Ver vencimientos de:",
-    ["Próximos (BCP/BBVA - 05 May)", "Siguiente (Interbank - 21 May)", "Futuro (Scotiabank - Jun)", "Ver Todo"]
+    ["Pros (BCP/BBVA - 05 May)", "Siguiente (Interbank - 21 May)", "Futuro (Scotiabank - Jun)", "Ver Todo"]
 )
 
 # --- 3. CONEXIÓN A GOOGLE SHEETS ---
@@ -86,7 +86,6 @@ try:
     else:
         mes_seleccionado = "Ciclo Actual"
 
-    # Lógica de filtrado base por Ciclo
     if mes_seleccionado != "Ciclo Actual":
         df_base = df[df['Ciclo'] == mes_seleccionado]
         fase_display = f"Histórico: {mes_seleccionado}"
@@ -94,7 +93,6 @@ try:
         df_base = df
         fase_display = "Ciclo Actual"
 
-    # Aplicación del filtro de Enfoque de Pagos
     if fase_pago == "Próximos (BCP/BBVA - 05 May)":
         df_filtrado = df_base[df_base['Banco'].isin(['BCP', 'BBVA'])]
     elif fase_pago == "Siguiente (Interbank - 21 May)":
@@ -104,7 +102,7 @@ try:
     else:
         df_filtrado = df_base
 
-    # --- MÉTRICAS ---
+    # --- MÉTRICAS (CON PAGO TOTAL BBVA RECONOCIDO) ---
     gastos_totales_ciclo = df_base['Monto'].sum()
     gastos_vista_actual = df_filtrado['Monto'].sum()
     saldo_proyectado = INGRESOS_TOTALES - gastos_totales_ciclo
@@ -161,17 +159,17 @@ try:
         fig_cat.update_layout(showlegend=False)
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    # --- CONTROL DE CUOTAS ---
+    # --- CONTROL DE COMPROMISOS (BBVA TOTALIZADO) ---
     st.divider()
     st.subheader("🎯 Control de Compromisos")
     cuotas_list = [
-        {"Compromiso": "Préstamo BBVA", "Monto": 174.12, "Vence": "05-May", "Estado": "Falta pagar"},
+        {"Compromiso": "PRÉSTAMO BBVA (CANCELACIÓN TOTAL)", "Monto": 322.58, "Vence": "05-May", "Estado": "POR LIQUIDAR 🏁"},
         {"Compromiso": "Nintendo Switch 2", "Monto": 164.58, "Vence": "05-May", "Estado": "Falta pagar"},
         {"Compromiso": "Powerpay (iPhones)", "Monto": 442.21, "Vence": "11-May", "Estado": "Falta pagar"}
     ]
     st.table(cuotas_list)
 
-    # --- ORÁCULO IA (CORREGIDO PARA EVITAR EL ERROR DE LAS IMÁGENES) ---
+    # --- ORÁCULO IA ---
     st.divider()
     st.subheader("🤖 Oráculo IA")
     proy = (gastos_totales_ciclo / datetime.now().day) * 30 if datetime.now().day > 0 else 0
