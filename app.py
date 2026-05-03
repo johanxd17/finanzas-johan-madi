@@ -28,8 +28,7 @@ MI_SUELDO = 1068.29
 SUELDO_MADI = 602.00
 AHORRO_YAPE = 68.00
 APOYO_MAMA = 500.00
-TOTAL_INGRESOS = MI_SUELDO + SUELDO_MADI + AHORRO_YAPE + APOYO_MAMA
-INGRESOS_TOTALES = TOTAL_INGRESOS
+INGRESOS_TOTALES = MI_SUELDO + SUELDO_MADI + AHORRO_YAPE + APOYO_MAMA
 
 FECHAS_BANCOS = {
     'BCP': [10, 5],
@@ -45,7 +44,7 @@ pagos_confirmados = {}
 for banco in FECHAS_BANCOS.keys():
     pagos_confirmados[banco] = st.sidebar.checkbox(f"Pagué {banco}", key=f"pay_{banco}")
 
-# --- FILTRO DE PRIORIDAD DE PAGOS (REINTEGRADO) ---
+# --- FILTRO DE PRIORIDAD DE PAGOS ---
 st.sidebar.divider()
 st.sidebar.subheader("🎯 Enfoque de Pagos")
 fase_pago = st.sidebar.radio(
@@ -87,28 +86,32 @@ try:
     else:
         mes_seleccionado = "Ciclo Actual"
 
-    # Lógica de filtrado
+    # Lógica de filtrado base por Ciclo
     if mes_seleccionado != "Ciclo Actual":
-        df_filtrado = df[df['Ciclo'] == mes_seleccionado]
+        df_base = df[df['Ciclo'] == mes_seleccionado]
         fase_display = f"Histórico: {mes_seleccionado}"
     else:
-        if fase_pago == "Próximos (BCP/BBVA - 05 May)":
-            df_filtrado = df[df['Banco'].isin(['BCP', 'BBVA'])]
-        elif fase_pago == "Siguiente (Interbank - 21 May)":
-            df_filtrado = df[df['Banco'] == 'INTERBANK']
-        elif fase_pago == "Futuro (Scotiabank - Jun)":
-            df_filtrado = df[df['Banco'] == 'SCOTIABANK']
-        else:
-            df_filtrado = df
-        fase_display = fase_pago
+        df_base = df
+        fase_display = "Ciclo Actual"
 
-    # --- MÉTRICAS DINÁMICAS ---
-    gastos_fase = df_filtrado['Monto'].sum()
-    saldo_proyectado = INGRESOS_TOTALES - df[df['Ciclo'] == 'Mayo-26']['Monto'].sum() if mes_seleccionado == "Ciclo Actual" else INGRESOS_TOTALES - gastos_fase
+    # Aplicación del filtro de Enfoque de Pagos
+    if fase_pago == "Próximos (BCP/BBVA - 05 May)":
+        df_filtrado = df_base[df_base['Banco'].isin(['BCP', 'BBVA'])]
+    elif fase_pago == "Siguiente (Interbank - 21 May)":
+        df_filtrado = df_base[df_base['Banco'] == 'INTERBANK']
+    elif fase_pago == "Futuro (Scotiabank - Jun)":
+        df_filtrado = df_base[df_base['Banco'] == 'SCOTIABANK']
+    else:
+        df_filtrado = df_base
+
+    # --- MÉTRICAS ---
+    gastos_totales_ciclo = df_base['Monto'].sum()
+    gastos_vista_actual = df_filtrado['Monto'].sum()
+    saldo_proyectado = INGRESOS_TOTALES - gastos_totales_ciclo
     
     m1, m2, m3 = st.columns(3)
     m1.metric("Ingresos Totales", f"S/ {INGRESOS_TOTALES:.2f}")
-    m2.metric(f"Total {fase_display.split(' ')[0]}", f"S/ {gastos_fase:.2f}")
+    m2.metric(f"Total en Vista", f"S/ {gastos_vista_actual:.2f}")
     m3.metric("Saldo Proyectado", f"S/ {saldo_proyectado:.2f}")
 
     # --- METAS DE AHORRO ---
@@ -122,10 +125,10 @@ try:
         st.progress(min(ahorro_disp / meta_obj, 1.0))
         st.write(f"Proyectado: S/ {ahorro_disp:.2f}")
     with col_meta2:
-        if (gastos_fase/INGRESOS_TOTALES) > 0.9: st.warning("⚠️ Margen crítico.")
+        if (gastos_vista_actual/INGRESOS_TOTALES) > 0.9: st.warning("⚠️ Margen crítico.")
         else: st.success("✨ Gestión bajo control.")
 
-    # --- RECORDATORIOS ---
+    # --- RECORDATORIOS DE BANCOS ---
     st.subheader("🔔 Recordatorios de Facturación")
     hoy = datetime.now().day
     columnas_alertas = st.columns(len(FECHAS_BANCOS))
@@ -139,7 +142,7 @@ try:
                 else: st.info(f"**{banco}**\n\n{faltan} días")
             else: st.warning(f"**{banco}**\n\nCorte: {dia_corte}")
 
-    # --- BLOQUE DE ANÁLISIS ---
+    # --- ANÁLISIS GRÁFICO ---
     st.divider()
     st.subheader("📊 Análisis de Movimientos")
     c1, c2, c3 = st.columns(3)
@@ -161,20 +164,24 @@ try:
     # --- CONTROL DE CUOTAS ---
     st.divider()
     st.subheader("🎯 Control de Compromisos")
-    cuotas = {
-        "Préstamo BBVA": {"monto": 174.12, "vence": "05-May", "cuota": "Penúltima"},
-        "Nintendo Switch 2": {"monto": 164.58, "vence": "05-May", "cuota": "2/12"},
-        "Powerpay (iPhones)": {"monto": 442.21, "vence": "11-May", "cuota": "ÚLTIMA 🚀"}
-    }
-    st.table([{"Compromiso": k, "Monto": v["monto"], "Vencimiento": v["vence"], "Estado": v["cuota"]} for k, v in cuotas.items()])
+    cuotas_list = [
+        {"Compromiso": "Préstamo BBVA", "Monto": 174.12, "Vence": "05-May", "Estado": "Falta pagar"},
+        {"Compromiso": "Nintendo Switch 2", "Monto": 164.58, "Vence": "05-May", "Estado": "Falta pagar"},
+        {"Compromiso": "Powerpay (iPhones)", "Monto": 442.21, "Vence": "11-May", "Estado": "Falta pagar"}
+    ]
+    st.table(cuotas_list)
 
-    # --- ORÁCULO IA ---
+    # --- ORÁCULO IA (CORREGIDO PARA EVITAR EL ERROR DE LAS IMÁGENES) ---
+    st.divider()
     st.subheader("🤖 Oráculo IA")
-    proy = (df_filtrado['Monto'].sum() / datetime.now().day) * 30 if datetime.now().day > 0 else 0
-    st.success(f"Proyección: S/ {proy:.2f}") if proy <= INGRESOS_TOTALES else st.error(f"Proyección: S/ {proy:.2f}")
+    proy = (gastos_totales_ciclo / datetime.now().day) * 30 if datetime.now().day > 0 else 0
+    if proy <= INGRESOS_TOTALES:
+        st.success(f"Proyección: S/ {proy:.2f}")
+    else:
+        st.error(f"Proyección: S/ {proy:.2f}")
 
     st.subheader("📂 Registro Maestro")
     st.dataframe(df_filtrado, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Error: {e}")
+    st.error(f"Error técnico: {e}")
