@@ -73,12 +73,18 @@ def clasificador_ia(concepto):
     if any(word in concepto for word in ['cine', 'netflix', 'juego', 'salida', 'cerveza', 'switch']):
         return "🎮 Diversión"
     return "❓ Otros"
-# --- FILTRO HISTÓRICO ---
-st.sidebar.divider()
-st.sidebar.subheader("📅 Ver Historial")
+
+try:
+    # 1. Carga de datos
+    df = pd.read_csv(url)
+    df.columns = [c.strip() for c in df.columns]
+
+    # --- FILTRO HISTÓRICO ---
+    st.sidebar.divider()
+    st.sidebar.subheader("📅 Ver Historial")
 
 # Extraemos los meses/años disponibles en tu Excel
-if not df.empty:
+    if not df.empty:
         df['Mes_Año'] = df['Fecha'].dt.strftime('%B %Y') # Crea etiquetas como "May 2026"
         meses_disponibles = df['Mes_Año'].unique().tolist()
     
@@ -91,11 +97,6 @@ if not df.empty:
     else:
         # Aquí mantienes tu lógica actual de filtrar por fechas de bancos
         pass
-try:
-    # 1. Carga de datos
-    df = pd.read_csv(url)
-    df.columns = [c.strip() for c in df.columns]
-
     # 3. Normalización
     if 'Banco' in df.columns:
         df['Banco'] = df['Banco'].astype(str).str.strip().str.upper()
