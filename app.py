@@ -78,7 +78,7 @@ st.sidebar.divider()
 st.sidebar.subheader("📅 Ver Historial")
 
 # Extraemos los meses/años disponibles en tu Excel
-    if not df.empty:
+if not df.empty:
         df['Mes_Año'] = df['Fecha'].dt.strftime('%B %Y') # Crea etiquetas como "May 2026"
         meses_disponibles = df['Mes_Año'].unique().tolist()
     
