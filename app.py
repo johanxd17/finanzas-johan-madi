@@ -73,7 +73,24 @@ def clasificador_ia(concepto):
     if any(word in concepto for word in ['cine', 'netflix', 'juego', 'salida', 'cerveza', 'switch']):
         return "🎮 Diversión"
     return "❓ Otros"
+# --- FILTRO HISTÓRICO ---
+st.sidebar.divider()
+st.sidebar.subheader("📅 Ver Historial")
 
+# Extraemos los meses/años disponibles en tu Excel
+if not df.empty:
+    df['Mes_Año'] = df['Fecha'].dt.strftime('%B %Y') # Crea etiquetas como "May 2026"
+    meses_disponibles = df['Mes_Año'].unique().tolist()
+    
+    # Añadimos "Ciclo Actual" como opción por defecto
+    mes_seleccionado = st.sidebar.selectbox("Seleccionar Periodo:", ["Ciclo Actual"] + meses_disponibles)
+
+    if mes_seleccionado != "Ciclo Actual":
+        df_filtrado = df[df['Mes_Año'] == mes_seleccionado]
+        fase_pago = f"Histórico: {mes_seleccionado}"
+    else:
+        # Aquí mantienes tu lógica actual de filtrar por fechas de bancos
+        pass
 try:
     # 1. Carga de datos
     df = pd.read_csv(url)
@@ -206,6 +223,16 @@ try:
         fig_cat.update_layout(showlegend=False)
         st.plotly_chart(fig_cat, use_container_width=True)
 
+    # --- SECCIÓN COMPARATIVA (Solo si hay más de 1 mes) ---
+    st.header("📈 Evolución Mensual")
+    if not df.empty:
+        # Agrupamos por Mes_Año para ver cuánto gastaste en cada uno
+        df_hist = df.groupby('Mes_Año')['Monto'].sum().reset_index()
+        fig_hist = px.bar(df_hist, x='Mes_Año', y='Monto', 
+                      title="Gasto Total por Mes",
+                      color_discrete_sequence=['#2E86C1'])
+        st.plotly_chart(fig_hist, use_container_width=True)
+    
     # --- 7. GRÁFICO DE TENDENCIA ---
     st.divider()
     st.subheader("📈 Tendencia de Gasto en el Tiempo")
